@@ -22,8 +22,9 @@ export default function Mandate() {
           <p className="muted" style={{ marginTop: 4, fontSize: 14 }}>{t(L, 'mSub', { addr: lead.property })}</p>
         </div>
         <div className="quote-hero">
-          <span className="small">{t(L, 'mIncl')}</span>
-          <b>{money(lead.quote, L)}</b>
+          <span className="small">{t(L, 'approx')}</span>
+          <b>≈ {money(lead.quote, L)}</b>
+          <span className="small">{t(L, 'plusPlus')}</span>
         </div>
         <div className="stack" style={{ gap: 8 }}>
           <b>{t(L, 'mWhat')}</b>
@@ -33,7 +34,8 @@ export default function Mandate() {
           <b>{t(L, 'mDocs')}</b>
           {t(L, 'mDocsList').map((x) => <span key={x} className="row small" style={{ gap: 8, alignItems: 'flex-start' }}><FileText size={15} style={{ flex: 'none', marginTop: 2 }} />{x}</span>)}
         </div>
-        <p className="banner neutral row small" style={{ gap: 8, alignItems: 'flex-start' }}><Banknote size={16} style={{ flex: 'none' }} />{t(L, 'mPay')}</p>
+        <p className="banner neutral row small" style={{ gap: 8, alignItems: 'flex-start' }}><Banknote size={16} style={{ flex: 'none' }} />{lead.type === 'Sale' ? t(L, 'paySeller') : t(L, 'payBuyer')}</p>
+        <button className="attach-chip as-link" onClick={() => nav(`/client/guide?role=${lead.type === 'Sale' ? 'seller' : 'buyer'}`)}><FileText size={13} /> {t(L, 'guide')} · {t(L, 'guideOpen')}</button>
         {accepted && (
           <div className="banner ok stack" style={{ gap: 4 }}>
             <b>{t(L, 'mAccepted', { id: DEMO_FILE })}</b>

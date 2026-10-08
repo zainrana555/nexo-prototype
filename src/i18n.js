@@ -26,7 +26,7 @@ const S = {
   mWhat: { fr: 'Ce qui est inclus', en: 'What’s included' },
   mWhatList: { fr: ['Vérification des titres (registre foncier)', 'Préparation et signature de l’acte de vente et de l’hypothèque', 'Coordination avec votre banque', 'Remise des documents finaux en ligne'], en: ['Title search (land registry)', 'Preparation and signing of the deed of sale and mortgage', 'Coordination with your bank', 'Online delivery of final documents'] },
   mDocs: { fr: 'Documents à prévoir', en: 'Documents you’ll need' },
-  mDocsList: { fr: ['Deux pièces d’identité couleur avec photo (passeport, permis de conduire ou carte d’assurance maladie)', 'Votre adresse actuelle et votre état civil', 'Les coordonnées du vendeur', 'Votre assureur habitation (la banque doit y figurer comme créancier)'], en: ['Two colour photo IDs (passport, driver’s licence or health card)', 'Your current address and marital status', 'The seller’s contact details', 'Your home insurer (the bank must be listed as creditor)'] },
+  mDocsList: { fr: ['Deux pièces d’identité valides (photo, en couleurs, recto verso) et une copie du passeport canadien de chaque acheteur', 'Votre adresse complète', 'Votre état civil et ses documents (jugement de divorce, contrat et certificat de mariage, ou certificat de décès)', 'Les coordonnées du vendeur', 'Sans courtier : la promesse d’achat, le certificat de localisation et les coordonnées du syndicat', 'Une assurance habitation en vigueur à la date de l’acte de vente'], en: ['Two valid IDs (photo, colour, front and back) and a copy of each purchaser’s Canadian passport', 'Your full address', 'Your civil status and its documents (divorce judgment, marriage contract and certificate, or death certificate)', 'The seller’s contact details', 'Without a broker: the promise to purchase, the certificate of location and the syndicate contacts', 'Home insurance effective on the date of the deed of sale'] },
   mPay: { fr: 'Les honoraires sont payés à la signature, à même les déboursés. Un dépôt est requis seulement pour un prêt privé. Aucune carte de crédit.', en: 'Fees are paid at closing, from the disbursements. A deposit is required only for private-lending files. No credit cards.' },
   mAccept: { fr: 'Accepter et ouvrir mon dossier', en: 'Accept and open my file' },
   mQuestion: { fr: 'J’ai une question', en: 'I have a question' },
@@ -213,6 +213,66 @@ const S = {
   idFront: { fr: 'Recto (couleur)', en: 'Front (colour)' },
   idBack: { fr: 'Verso (couleur)', en: 'Back (colour)' },
   previewAs: { fr: 'Démo : afficher le questionnaire pour', en: 'Demo: show questionnaire as' },
+
+  // Two meetings
+  meetMortgage: { fr: 'Signature de l’acte d’hypothèque', en: 'Mortgage deed signing' },
+  meetMortgageHint: { fr: 'Environ une semaine avant la vente', en: 'About one week before the sale' },
+  meetSale: { fr: 'Signature de l’acte de vente', en: 'Deed of sale signing' },
+  meetSaleHint: { fr: 'En présence du vendeur, à la date de clôture', en: 'With the seller, on the closing date' },
+  bookTwo: { fr: 'Vos deux rendez-vous', en: 'Your two appointments' },
+  bothBooked: { fr: 'Vos deux rendez-vous sont réservés!', en: 'Both appointments are booked!' },
+  notBooked: { fr: 'À réserver', en: 'To book' },
+  bringOriginals: { fr: 'Apportez vos pièces d’identité originales.', en: 'Bring your original IDs.' },
+
+  // Questionnaire additions (from the firm’s mini-mandate)
+  passportCopy: { fr: 'Copie du passeport canadien (pour chaque acheteur)', en: 'Copy of Canadian passport (for each purchaser)' },
+  civilDocs: { fr: 'Documents d’état civil', en: 'Civil status documents' },
+  civilDocsHint: { fr: 'Jugement de divorce, contrat et certificat de mariage, ou certificat de décès, selon le cas. Les conjoints de fait jamais mariés sont considérés célibataires.', en: 'Divorce judgment, marriage contract and certificate, or death certificate, as applicable. Common-law partners never married are considered single.' },
+  hasBroker: { fr: 'Êtes-vous représenté par un courtier immobilier?', en: 'Are you represented by a real estate broker?' },
+  brokerYes: { fr: 'Votre courtier nous transmettra les documents de la transaction.', en: 'Your broker will send us the transaction documents.' },
+  colCert: { fr: 'Certificat de localisation', en: 'Certificate of location' },
+  syndicate: { fr: 'Coordonnées du syndicat / de la gestion (copropriété)', en: 'Syndicate / management contacts (condo)' },
+  sellerContacts: { fr: 'Coordonnées du vendeur (nous lui transmettrons ses frais)', en: 'Seller’s contacts (we will send them their fees)' },
+  sellerEmail: { fr: 'Courriel du vendeur', en: 'Seller’s email' },
+  fundsTitle: { fr: 'Votre mise de fonds', en: 'Your down payment' },
+  fundsOrigin: { fr: 'Provenance des fonds', en: 'Source of funds' },
+  fundsOpts: { fr: ['Épargne', 'Vente d’une propriété', 'Don d’un proche', 'REER / RAP', 'Autre'], en: ['Savings', 'Sale of a property', 'Gift from a relative', 'RRSP / HBP', 'Other'] },
+  thirdParty: { fr: 'Une partie des fonds provient d’un tiers (parent, conjoint…)', en: 'Part of the funds comes from a third party (parent, spouse…)' },
+  abroad: { fr: 'Des fonds proviennent de l’extérieur du Canada', en: 'Some funds come from outside Canada' },
+  unequal: { fr: 'Les acheteurs contribuent des montants inégaux (protection à prévoir dans l’acte)', en: 'Buyers contribute unequal amounts (protection to include in the deed)' },
+  propKind: { fr: 'Type de propriété vendue', en: 'Type of property sold' },
+  propKinds: { fr: ['Condo non loué', 'Condo loué', 'Immeuble à logements', 'Maison / immeuble'], en: ['Condo, not rented', 'Condo, rented', 'Apartment building', 'House / building'] },
+  newAddress: { fr: 'Votre nouvelle adresse après la vente', en: 'Your new address after the sale' },
+  titles: { fr: 'Titres originaux (si vous les avez)', en: 'Original titles (if you have them)' },
+
+  // Guides, FAQ, fraud
+  guide: { fr: 'Guide explicatif', en: 'Explanatory guide' },
+  guideOpen: { fr: 'Lire le guide', en: 'Read the guide' },
+  faq: { fr: 'Questions fréquentes', en: 'Frequently asked questions' },
+  fraud: { fr: 'Avis important : notre étude ne vous transmettra jamais ses informations bancaires par courriel. En cas de doute, appelez-nous au 514 748-6539 avant tout transfert.', en: 'Important: our office will never send banking information by email. If in doubt, call us at 514 748-6539 before sending any funds.' },
+  fundsDeclare: { fr: 'Déclarer la provenance des fonds', en: 'Declare the source of funds' },
+  fundsDeclared: { fr: '✓ Provenance des fonds déclarée', en: '✓ Source of funds declared' },
+  approx: { fr: 'Honoraires approximatifs', en: 'Approximate fees' },
+  plusPlus: { fr: '+ taxes et frais (détaillés dans le contrat de service)', en: '+ taxes and disbursements (detailed in the services agreement)' },
+  payBuyer: { fr: 'Les honoraires sont remis avec la mise de fonds, par virement uniquement.', en: 'Fees are remitted with the down payment, by wire only.' },
+  paySeller: { fr: 'Les honoraires sont payés à même le produit de la vente.', en: 'Fees are paid from the sale proceeds.' },
+
+  // Client account
+  suTitle: { fr: 'Créer votre espace client', en: 'Create your client space' },
+  suSub: { fr: 'Un accès sécurisé pour suivre votre dossier, signer et télécharger vos documents.', en: 'Secure access to follow your file, sign and download your documents.' },
+  suCode: { fr: 'Entrez le code reçu par courriel', en: 'Enter the code sent by email' },
+  suPassword: { fr: 'Choisissez un mot de passe', en: 'Choose a password' },
+  suPassword2: { fr: 'Confirmez le mot de passe', en: 'Confirm the password' },
+  su2fa: { fr: 'Vérification en deux étapes par texto', en: 'Two-step verification by text message' },
+  suPhone: { fr: 'Cellulaire', en: 'Mobile phone' },
+  suDone: { fr: 'Votre espace client est créé', en: 'Your client space is ready' },
+  suOr: { fr: 'ou', en: 'or' },
+  suGoogle: { fr: 'Continuer avec Google', en: 'Continue with Google' },
+  suMicrosoft: { fr: 'Continuer avec Microsoft', en: 'Continue with Microsoft' },
+  suHave: { fr: 'Déjà un compte? Se connecter', en: 'Already have an account? Sign in' },
+  suCreate: { fr: 'Créer mon compte', en: 'Create my account' },
+  suNext: { fr: 'Suivant', en: 'Next' },
+  pwRules: { fr: '10 caractères minimum, avec un chiffre', en: 'At least 10 characters, including a number' },
 }
 
 export function t(lang, key, vars) {
@@ -227,7 +287,7 @@ export function t(lang, key, vars) {
 export function emailContent(kind, lang, ctx) {
   const fr = lang === 'fr'
   const hi = fr ? `Bonjour ${ctx.first},` : `Hello ${ctx.first},`
-  const sig = fr ? 'Nathalie Roy, parajuriste\nÉtude Dubois Notaires' : 'Nathalie Roy, paralegal\nÉtude Dubois Notaires'
+  const sig = fr ? 'Nathalie Roy, parajuriste\nAcoca Notaires inc. · 700 Av. Sainte-Croix, Saint-Laurent · 514 748-6539' : 'Nathalie Roy, paralegal\nAcoca Notaires inc. · 700 Av. Sainte-Croix, Saint-Laurent · 514 748-6539'
   // Appointment details, for emails that carry an appointment in ctx.
   const apptWhen = ctx.date ? `${fmtDate(ctx.date, lang)} · ${ctx.time}` : ''
   const apptName = ctx.kind === 'consultation' ? (fr ? 'consultation' : 'consultation') : (fr ? 'rendez-vous de signature' : 'signing appointment')
@@ -244,12 +304,12 @@ export function emailContent(kind, lang, ctx) {
     custom: { subject: ctx.subject ?? '', body: ctx.body ?? '' },
     funds: {
       subject: fr ? 'Fonds requis pour la signature' : 'Funds required for signing',
-      body: fr ? `${hi}\n\nVotre signature approche. Voici le montant à prévoir : ${ctx.amount ?? ''}.\n\n• Par virement ou coupon bancaire (Atlas) au compte en fidéicommis de l’étude\n• Avec une preuve d’assurance habitation indiquant votre banque comme créancier\n\nPour votre sécurité, nos coordonnées bancaires ne sont jamais envoyées par courriel : appelez-nous au 514-555-0100 pour les obtenir.\n\n${sig}` : `${hi}\n\nYour signing is coming up. Here is the amount to provide: ${ctx.amount ?? ''}.\n\n• By wire transfer or bank coupon (Atlas) to the firm’s trust account\n• With proof of home insurance naming your bank as creditor\n\nFor your security, our banking details are never sent by email: call us at 514-555-0100 to get them.\n\n${sig}`,
-      cta: fr ? 'Voir mon dossier' : 'View my file', to: '/client/file',
+      body: fr ? `${hi}\n\nVotre signature approche. Le montant total à remettre à notre étude est de ${ctx.amount ?? ''} (facture, état des ajustements et état des déboursés joints).\n\n• Par virement bancaire uniquement (aucun chèque), avant ou au premier rendez-vous\n• Une preuve de la provenance des fonds est exigée (déclarez-la dans votre espace client)\n• Nos instructions bancaires vous seront envoyées dans un document protégé par mot de passe. Le mot de passe vous sera donné par téléphone seulement : ne transférez aucuns fonds avant de l’avoir confirmé avec nous.\n• Fonds d’un tiers, REER/RAP ou fonds de l’étranger : avisez-nous dès maintenant.\n\n${sig}` : `${hi}\n\nYour signing is coming up. The total amount to remit to our office is ${ctx.amount ?? ''} (invoice, statement of adjustments and disbursements attached).\n\n• By bank wire only (no cheques), before or at the first appointment\n• Proof of the source of funds is required (declare it in your client space)\n• Our banking instructions will be sent in a password-protected document. The password is given by phone only: do not transfer any funds before confirming it with us.\n• Third-party funds, RRSP/HBP or funds from abroad: tell us now.\n\n${sig}`,
+      cta: fr ? 'Déclarer la provenance des fonds' : 'Declare the source of funds', to: '/client/file',
     },
     ack: {
       subject: fr ? 'Nous avons bien reçu votre demande' : 'We received your inquiry',
-      body: fr ? `${hi}\n\nMerci d’avoir communiqué avec Étude Dubois Notaires. Une parajuriste vous fera parvenir une soumission personnalisée sous peu (habituellement en moins de 24 heures).\n\nVous préférez en parler? Réservez une courte consultation gratuite, par téléphone, Teams ou à l’étude.\n\n${sig}` : `${hi}\n\nThank you for contacting Étude Dubois Notaires. A paralegal will send you a personalized quote shortly (usually within 24 hours).\n\nPrefer to talk first? Book a short free consultation by phone, Teams or at the office.\n\n${sig}`,
+      body: fr ? `${hi}\n\nMerci d’avoir communiqué avec Acoca Notaires. Une parajuriste vous fera parvenir une soumission personnalisée sous peu (habituellement en moins de 24 heures).\n\nVous préférez en parler? Réservez une courte consultation gratuite, par téléphone, Teams ou à l’étude.\n\n${sig}` : `${hi}\n\nThank you for contacting Acoca Notaires. A paralegal will send you a personalized quote shortly (usually within 24 hours).\n\nPrefer to talk first? Book a short free consultation by phone, Teams or at the office.\n\n${sig}`,
       cta: fr ? 'Réserver une consultation (facultatif)' : 'Book a consultation (optional)', to: '/client/consult',
     },
     consultLink: {
@@ -263,9 +323,9 @@ export function emailContent(kind, lang, ctx) {
       cta: fr ? 'Gérer mon rendez-vous' : 'Manage my appointment', to: '/client/consult', teams: ctx.teams, ics: true,
     },
     mandate: {
-      subject: fr ? 'Votre soumission – achat' : 'Your quote – purchase',
-      body: fr ? `${hi}\n\nMerci de votre demande. Pour votre achat au ${ctx.addr}, nos honoraires sont de ${ctx.total}, taxes et débours inclus.\n\nDocuments à prévoir :\n• Deux pièces d’identité avec photo\n• Votre adresse actuelle et votre état civil\n• Les coordonnées du vendeur\n• Votre assureur habitation (la banque doit y figurer comme créancier)\n\nSi la soumission vous convient, acceptez-la en un clic : votre dossier sera ouvert immédiatement.\n\n${sig}` : `${hi}\n\nThank you for your inquiry. For your purchase at ${ctx.addr}, our fees are ${ctx.total}, taxes and disbursements included.\n\nDocuments you’ll need:\n• Two photo IDs\n• Your current address and marital status\n• The seller’s details\n• Your home insurer (the bank must be listed as creditor)\n\nIf the quote suits you, accept it in one click and your file opens immediately.\n\n${sig}`,
-      cta: fr ? 'Voir et accepter la soumission' : 'View and accept the quote', to: '/client/mandate',
+      subject: fr ? 'Votre achat – soumission' : 'Your purchase – quote',
+      body: fr ? `${hi}\n\nFélicitations pour votre nouvel achat! Vous trouverez ci-joint notre guide explicatif destiné à l’acheteur.\n\nNos honoraires pour ce dossier sont approximativement de ${ctx.total} + taxes et frais. Confirmez votre acceptation avec le bouton ci-dessous : une parajuriste procédera ensuite à la recherche des titres et vous transmettra un contrat de service détaillant l’ensemble des frais.\n\nVeuillez informer votre institution financière de faire parvenir les instructions hypothécaires au nom du notaire à être désigné. Les rendez-vous sont fixés uniquement après la signature du contrat de service et la réception des instructions bancaires.\n\nÀ prévoir : deux pièces d’identité (couleur, recto verso) et une copie de votre passeport canadien, votre adresse, votre état civil et ses documents, les coordonnées du vendeur. Sans courtier : la promesse d’achat, le certificat de localisation et les coordonnées du syndicat.\n\nUne assurance habitation prenant effet à la date de l’acte de vente devra être obtenue.\n\n${sig}` : `${hi}\n\nCongratulations on your purchase! Our explanatory guide for buyers is attached.\n\nOur fees for this file are approximately ${ctx.total} + taxes and disbursements. Confirm your acceptance with the button below: a paralegal will then do the title search and send you a services agreement detailing all fees.\n\nPlease ask your lender to send the mortgage instructions in the name of the notary to be designated. Appointments are scheduled only after the services agreement is signed and the mortgage instructions are received.\n\nYou’ll need: two IDs (colour, front and back) and a copy of your Canadian passport, your address, your civil status and its documents, the seller’s contacts. Without a broker: the promise to purchase, the certificate of location and the syndicate contacts.\n\nHome insurance effective on the date of the deed of sale must be obtained.\n\n${sig}`,
+      cta: fr ? 'Voir et accepter la soumission' : 'View and accept the quote', to: '/client/mandate', attach: { label: fr ? 'Guide explicatif – Acheteur.pdf' : 'Explanatory guide – Purchaser.pdf', to: '/client/guide?role=buyer' },
     },
     questionnaire: {
       subject: fr ? `Votre dossier ${ctx.file} est ouvert` : `Your file ${ctx.file} is open`,
@@ -284,7 +344,7 @@ export function emailContent(kind, lang, ctx) {
     },
     booking: {
       subject: fr ? 'Réservez votre rendez-vous de signature' : 'Book your signing appointment',
-      body: fr ? `${hi}\n\nBonne nouvelle : nous avons reçu les instructions de votre banque. Votre dossier est prêt pour la signature.\n\nVoici ${ctx.slots?.length ?? 3} moments disponibles avec ${ctx.with ?? 'votre notaire'}. Cliquez sur celui qui vous convient (en personne ou par vidéo Teams) :\n\n${sig}` : `${hi}\n\nGood news: we’ve received your bank’s instructions. Your file is ready for signing.\n\nHere are ${ctx.slots?.length ?? 3} available times with ${ctx.with ?? 'your notary'}. Click the one that suits you (in person or by Teams video):\n\n${sig}`,
+      body: fr ? `${hi}\n\nBonne nouvelle : nous avons reçu les instructions de votre banque. Votre dossier est prêt pour la signature.\n\n${ctx.two ? 'Votre achat comporte deux rendez-vous : la signature de l’acte d’hypothèque (environ une semaine avant), puis l’acte de vente avec le vendeur. ' : ''}Voici ${ctx.slots?.length ?? 3} moments disponibles avec ${ctx.with ?? 'votre notaire'}${ctx.two ? ' pour le premier rendez-vous' : ''}. Cliquez sur celui qui vous convient (en personne ou par vidéo Teams) :\n\n${sig}` : `${hi}\n\nGood news: we’ve received your bank’s instructions. Your file is ready for signing.\n\n${ctx.two ? 'Your purchase has two appointments: the mortgage deed signing (about a week before), then the deed of sale with the seller. ' : ''}Here are ${ctx.slots?.length ?? 3} available times with ${ctx.with ?? 'your notary'}${ctx.two ? ' for the first appointment' : ''}. Click the one that suits you (in person or by Teams video):\n\n${sig}`,
       cta: fr ? 'Voir d’autres disponibilités' : 'See other times', to: '/client/booking', slots: ctx.slots,
     },
     booked: {

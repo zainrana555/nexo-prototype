@@ -3,7 +3,12 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Mail, Lock, Copy, Upload, Send, Check, X, Landmark, CalendarDays, FileText, Download, ShieldCheck, ArrowRight, Printer, TriangleAlert, CircleCheck, Video, CalendarClock, ExternalLink, Printer as Fax, Maximize2, Building2 } from 'lucide-react'
 import { useStore } from '../../store'
 import { PageHeader, Badge, Tabs, Modal, Progress, Avatar } from '../../ui'
-import { STAGES, stageInfo, stepDone, bookingUnlocked, computeFees, defaultFeeSelection, money, fmtDate, isExpired, validIds, isClosed, can, contractOverdue, TITLE_ITEMS } from '../../logic'
+import { stagesFor, stageInfo, stepDone, bookingUnlocked, money, fmtDate, isExpired, validIds, isClosed, can, contractOverdue } from '../../logic'
+import { fileType } from '../../firm'
+import FileSheet from './FileSheet'
+import FileChecklist from './FileChecklist'
+import FileContract from './FileContract'
+import FileClosing from './FileClosing'
 import { addDays, STAFF } from '../../data'
 import { Composer, composerFields, IdViewer } from '../../Shared'
 import { appointments } from '../../availability'
@@ -26,7 +31,7 @@ export default function FileDetail() {
       <PageHeader
         crumbs={[{ label: 'Files', to: '/app/files' }, { label: file.id }]}
         title={<>{file.clients.join(' & ')}{file.clientType === 'Corporation' && <> <Badge tone="purple">Corporation</Badge></>}</>}
-        sub={`${file.id} · ${file.type} · ${file.addr}, ${file.city} · Notary: ${file.notary}`}
+        sub={`${file.id} · ${file.type}${file.propertyType && fileType(file.type).service === 'Real estate' ? ` · ${file.propertyType}` : ''}${file.lenderType && file.lenderType !== 'Conventional' ? ` · ${file.lenderType}` : ''} · ${file.addr}, ${file.city} · Notary: ${file.notary}`}
         actions={<>
           {file.isDemo && <Link className="btn" to="/client"><Mail size={16} /> Client view</Link>}
           <button className="btn" onClick={() => setModal('compose')}><Mail size={16} /> Email or text client</button>
@@ -37,7 +42,7 @@ export default function FileDetail() {
 
       <div className="card" style={{ padding: 0 }}>
         <ol className="stages" aria-label="Workflow">
-          {STAGES.map((st, i) => (
+          {stagesFor(file).map((st, i) => (
             <li key={st.key} className={stepDone(file, st.key) ? 'done' : i === s.i ? 'current' : ''}>
               <button onClick={() => setTab(st.tab)} aria-current={i === s.i ? 'step' : undefined}>
                 <span className="st-n">{stepDone(file, st.key) ? <Check size={13} /> : i + 1}</span>{st.label}
@@ -50,16 +55,20 @@ export default function FileDetail() {
       <Tabs value={tab} onChange={setTab} tabs={[
         { key: 'overview', label: 'Overview' },
         { key: 'parties', label: 'Parties & IDs', count: pendingIds || null },
+        { key: 'sheet', label: 'File sheet' },
         { key: 'contract', label: 'Fees & contract' },
-        { key: 'closing', label: 'Title & closing' },
+        { key: 'checklist', label: 'Checklist' },
+        { key: 'closing', label: 'Signing & closing' },
         { key: 'documents', label: 'Documents' },
         { key: 'activity', label: 'Activity', count: file.log.length },
       ]} />
 
       {tab === 'overview' && <OverviewTab file={file} s={s} setTab={setTab} setModal={setModal} />}
       {tab === 'parties' && <PartiesTab file={file} />}
-      {tab === 'contract' && <ContractTab file={file} />}
-      {tab === 'closing' && <ClosingTab file={file} />}
+      {tab === 'sheet' && <FileSheet file={file} />}
+      {tab === 'contract' && <FileContract file={file} />}
+      {tab === 'checklist' && <FileChecklist file={file} />}
+      {tab === 'closing' && <FileClosing file={file} />}
       {tab === 'documents' && <DocumentsTab file={file} />}
       {tab === 'activity' && (
         <section className="card"><div className="timeline">{file.log.map((l, i) => <div key={i}><span className="small muted">{l.t} · {l.who}</span><div>{l.e}</div></div>)}</div></section>
@@ -78,14 +87,17 @@ function OverviewTab({ file, s, setTab, setModal }) {
   const admin = can(state, 'files.assign')
   const nav = useNavigate()
   const unlocked = bookingUnlocked(file)
+  const two = !!fileType(file.type).twoMeetings
+  const seller = file.type === 'Sale'
+  const meetings = two ? [['mortgage', '1 · Mortgage signing', file.mortgageBooking], ['main', '2 · Sale signing', file.booking]] : [['main', 'Signing', file.booking]]
   const action = {
     questionnaire: { label: 'Send reminder', run: () => { dispatch({ type: 'file/reminder', id: file.id }); notify('Reminder sent') } },
     ids: { label: 'Review IDs', run: () => nav('/app/id-review') },
     contract: { label: file.contract.sent ? 'View contract' : 'Prepare contract', run: () => setTab('contract') },
     lender: { label: 'Record lender instructions', run: () => setModal('lender') },
-    title: { label: 'Open title search', run: () => setTab('closing') },
+    title: { label: 'Open checklist', run: () => setTab('checklist') },
     booking: { label: file.bookingLinkSent ? 'Resend booking link' : 'Send booking link', run: () => { dispatch({ type: 'booking/sendLink', id: file.id }); notify('Booking link emailed') } },
-    closing: { label: 'Open closing checklist', run: () => setTab('closing') },
+    closing: { label: 'Signing & closing', run: () => setTab('closing') },
     delivery: { label: 'Publish documents', run: () => setTab('closing') },
     procardex: { label: 'Procardex hand-off', run: () => setTab('closing') },
   }[s.key]
@@ -103,42 +115,57 @@ function OverviewTab({ file, s, setTab, setModal }) {
         </section>
 
         <div className="grid-2">
-          <section className="card stack" style={{ gap: 8 }}>
+          {fileType(file.type).lender ? <section className="card stack" style={{ gap: 8 }}>
             <div className="row between"><h2 className="row" style={{ gap: 6 }}><Landmark size={16} /> Lender instructions</h2>{file.bankReceived ? <Badge tone="ok">Received</Badge> : <Badge tone="warn">Waiting</Badge>}</div>
             <div className="kv"><span className="muted">Lender</span><span>{file.lender}</span></div>
             <div className="kv"><span className="muted">Mortgage</span><span className="mono">{file.mortgage ? money(file.mortgage) : '—'}</span></div>
             <div className="kv"><span className="muted">Source</span><span>Telus Lender Assist / AvisImmo</span></div>
             {!file.bankReceived && <button className="btn" onClick={() => setModal('lender')}>Record instructions</button>}
-          </section>
+          </section> : <section className="card stack" style={{ gap: 8 }}><h2 className="row" style={{ gap: 6 }}><Landmark size={16} /> Lender</h2><p className="small muted">No lender instructions needed for this file type ({file.type}).</p></section>}
           <section className="card stack" style={{ gap: 8 }}>
-            <div className="row between"><h2 className="row" style={{ gap: 6 }}><CalendarDays size={16} /> Signing appointment</h2>{file.booking ? <Badge tone="ok">Booked</Badge> : unlocked ? <Badge tone="blue">Link ready</Badge> : <Badge>Locked</Badge>}</div>
-            {file.booking ? (
-              <>
-                <div className="kv"><span className="muted">When</span><span>{fmtDate(file.booking.date)} · {file.booking.time}</span></div>
-                <div className="kv"><span className="muted">How</span><span>{file.booking.mode}</span></div>
-                <div className="kv"><span className="muted">Notary</span><span>{file.booking.notary ?? file.notary}</span></div>
-                {file.booking.attendees && <div className="kv"><span className="muted">Attendees</span><span>{file.booking.attendees.join(', ')}</span></div>}
-                {file.booking.teamsUrl && <div className="teams-box"><Video size={15} /><span className="grow mono small">{file.booking.teamsUrl}</span><button className="btn btn-sm" onClick={() => notify('Opening Microsoft Teams (demo)')}>Join</button></div>}
-                <p className="small ok row" style={{ gap: 6 }}><CircleCheck size={14} /> In Outlook · reminder 24 h before</p>
-                <button className="btn" onClick={() => setAppt(appointments(state).find((a) => a.id === 'sign-' + file.id))}><CalendarClock size={15} /> Reschedule or cancel</button>
-              </>
-            ) : unlocked ? (
-              <>
-                <p className="small muted">{file.bookingLinkSent ? 'Email sent with 3 proposed times; waiting for the client to pick one.' : 'Preconditions met. Email the client 3 proposed times, or book for them.'}</p>
-                <div className="row">
-                  <button className="btn" onClick={() => { dispatch({ type: 'booking/sendLink', id: file.id }); notify('Email sent with 3 proposed times') }}><Send size={15} /> {file.bookingLinkSent ? 'Resend' : 'Send'} proposed times</button>
-                  <button className="btn" onClick={() => setBookFor(true)}><CalendarDays size={15} /> Book for client</button>
-                </div>
-              </>
+            <div className="row between"><h2 className="row" style={{ gap: 6 }}><CalendarDays size={16} /> {two ? 'Appointments (2)' : 'Signing appointment'}</h2>{stepDone(file, 'booking') ? <Badge tone="ok">Booked</Badge> : unlocked ? <Badge tone="blue">Open</Badge> : <Badge>Locked</Badge>}</div>
+            {!unlocked ? (
+              <p className="small muted row" style={{ gap: 6, alignItems: 'flex-start' }}><Lock size={14} style={{ marginTop: 2 }} /> Opens when the service contract is signed{file.contract.signed ? ' ✓' : ''}{fileType(file.type).lender ? <> and the lender instructions are received{file.bankReceived ? ' ✓' : ''}</> : ''}.</p>
             ) : (
-              <p className="small muted row" style={{ gap: 6, alignItems: 'flex-start' }}><Lock size={14} style={{ marginTop: 2 }} /> Unlocks automatically when the service contract is signed{file.contract.signed ? ' ✓' : ''} and lender instructions are received{file.bankReceived ? ' ✓' : ''}.</p>
+              <>
+                {meetings.map(([which, label, b]) => (
+                  <div key={which} className="meet-row">
+                    <span className="grow"><b>{label}</b><span className="small muted" style={{ display: 'block' }}>{b ? `${fmtDate(b.date)} · ${b.time} · ${b.mode} · ${b.notary ?? file.notary}` : which === 'mortgage' ? 'About one week before the sale' : two ? 'With the seller present' : 'Not booked yet'}</span></span>
+                    {b ? <button className="btn btn-sm" onClick={() => setAppt(appointments(state).find((a) => a.id === (which === 'mortgage' ? 'mort-' : 'sign-') + file.id))}><CalendarClock size={14} /> Manage</button> : <Badge tone="warn">To book</Badge>}
+                  </div>
+                ))}
+                {meetings.some(([, , b]) => b?.teamsUrl) && <p className="small" style={{ color: '#4b45c4' }}>Teams links created automatically</p>}
+                {!stepDone(file, 'booking') && (
+                  <div className="row">
+                    <button className="btn btn-sm" onClick={() => { dispatch({ type: 'booking/sendLink', id: file.id }); notify('Email sent with 3 proposed times') }}><Send size={14} /> {file.bookingLinkSent ? 'Resend' : 'Send'} proposed times</button>
+                    <button className="btn btn-sm" onClick={() => setBookFor(true)}><CalendarDays size={14} /> Book for client</button>
+                  </div>
+                )}
+              </>
             )}
           </section>
         </div>
         <section className="card stack" style={{ gap: 8 }}>
-          <div className="row between"><h2 className="row" style={{ gap: 6 }}><Landmark size={16} /> Funds for signing</h2>{file.funds?.received ? <Badge tone="ok">Received</Badge> : file.funds?.requested ? <Badge tone="blue">Requested</Badge> : <Badge>Not requested</Badge>}</div>
-          <p className="small muted">Fees are paid at closing from the disbursements; a deposit is needed only for private-lending files. Trust reconciliation stays manual.</p>
-          {file.type !== 'Sale' && !file.funds?.requested && <button className="btn" style={{ alignSelf: 'flex-start' }} disabled={!file.contract.signed} onClick={() => { dispatch({ type: 'funds/request', id: file.id, amount: file.contract.total, amountLabel: money(file.contract.total) }); notify('Funds request emailed to client') }}><Send size={15} /> Send funds request</button>}
+          <div className="row between"><h2 className="row" style={{ gap: 6 }}><Landmark size={16} /> {seller ? 'Sale proceeds' : 'Funds for signing'}</h2>{file.funds?.received ? <Badge tone="ok">Received</Badge> : file.funds?.requested ? <Badge tone="blue">Requested</Badge> : <Badge>Not requested</Badge>}</div>
+          {seller ? (
+            <p className="small muted">Fees are paid from the sale proceeds. Net proceeds are released after the deed of sale is registered, by cheque or wire.</p>
+          ) : (
+            <>
+              <p className="small muted">{fileType(file.type).payer === 'buyer' || file.type === 'Purchase' || file.type === 'Cash purchase' ? 'Fees are remitted with the down payment, by wire only, before or at the first appointment.' : 'Fees are paid from the proceeds of the financing.'} Banking instructions are password-protected; the password is given by phone only.</p>
+              <div className="funds-steps">
+                <span className={file.funds?.requested ? 'ok' : ''}>{file.funds?.requested ? '✓' : '1'} Amount and proof-of-funds request sent</span>
+                <span className={file.funds?.passwordSent ? 'ok' : ''}>{file.funds?.passwordSent ? '✓' : '2'} Password-protected instructions sent</span>
+                <span className={file.funds?.passwordConfirmed ? 'ok' : ''}>{file.funds?.passwordConfirmed ? '✓' : '3'} Password confirmed by phone</span>
+                <span className={file.funds?.source ? 'ok' : ''}>{file.funds?.source ? '✓' : '4'} Source of funds declared{file.funds?.source ? `: ${file.funds.source.origin}${file.funds.source.thirdParty ? ' + third party' : ''}` : ''}</span>
+                <span className={file.funds?.received ? 'ok' : ''}>{file.funds?.received ? '✓' : '5'} Funds received in trust</span>
+              </div>
+              <div className="row">
+                {!file.funds?.requested && <button className="btn btn-sm" disabled={!file.contract.signed} onClick={() => { dispatch({ type: 'funds/request', id: file.id, amount: file.contract.total, amountLabel: money(file.contract.total) }); notify('Funds request emailed') }}><Send size={14} /> Send funds request</button>}
+                {file.funds?.requested && !file.funds?.passwordSent && <button className="btn btn-sm" onClick={() => { dispatch({ type: 'funds/password', id: file.id }); notify('Password-protected instructions sent') }}><Lock size={14} /> Send protected instructions</button>}
+                {file.funds?.passwordSent && !file.funds?.passwordConfirmed && <button className="btn btn-sm" onClick={() => { dispatch({ type: 'funds/passwordConfirmed', id: file.id }); notify('Password confirmed by phone') }}>Password confirmed by phone</button>}
+              </div>
+            </>
+          )}
         </section>
       </div>
       <aside className="side stack-lg">
@@ -228,168 +255,6 @@ function PartiesTab({ file }) {
           </section>
         )
       })}
-    </div>
-  )
-}
-
-function ContractTab({ file }) {
-  const { state, dispatch, notify } = useStore()
-  const items = state.feeItems
-  const seller = file.parties.find((p) => p.answers?.mortgagesToDischarge)
-  const [o, setO] = useState(() => file.contract.options?.sel ? file.contract.options : {
-    lang: file.lang,
-    sel: defaultFeeSelection(file.type, items, { parties: file.parties.length, mortgages: seller?.answers.mortgagesToDischarge.length ?? (file.type === 'Sale' ? 1 : 0), remote: file.parties.some((p) => p.liveness === 'Passed'), corporate: file.clientType === 'Corporation' }),
-  })
-  const [confirm, setConfirm] = useState(false)
-  const fees = computeFees(o.sel, items)
-  const fr = o.lang === 'FR'
-  const locked = file.contract.sent
-  const setQty = (id, v) => setO({ ...o, sel: { ...o.sel, qty: { ...o.sel.qty, [id]: Math.max(0, Number(v) || 0) } } })
-  const bases = items.filter((x) => x.kind === 'base' && x.type === file.type)
-
-  return (
-    <>
-      {file.contract.signed && <p className="banner ok row" style={{ gap: 6 }}><CircleCheck size={16} /> Signed electronically by {file.contract.signedBy ?? file.clients.join(' & ')}.</p>}
-      {file.contract.sent && !file.contract.signed && (
-        <div className="banner info row between">
-          <span>Out for e-signature with {file.clients.join(' & ')} since {file.contract.sentAt ?? 'today'}. Automatic reminder after 3 days.</span>
-          {file.isDemo ? <Link to="/client">Open Émilie’s inbox to sign →</Link> : <button className="btn btn-sm" onClick={() => { dispatch({ type: 'contract/sign', id: file.id, signer: file.clients[0] }); notify('Simulated client signature') }}>Simulate signature</button>}
-        </div>
-      )}
-      <div className="split">
-        <section className="card stack side" style={{ flexBasis: 380 }}>
-          <h2>Fees</h2>
-          <fieldset disabled={locked} className="stack" style={{ border: 0, padding: 0, margin: 0, gap: 8 }}>
-            <label className="field"><span>Published price ({file.type})</span>
-              <select className="select" value={o.sel.base} onChange={(e) => setO({ ...o, sel: { ...o.sel, base: e.target.value } })}>{bases.map((b) => <option key={b.id} value={b.id}>{b.label} · {money(b.amount)}</option>)}</select>
-            </label>
-            {items.filter((x) => x.kind === 'unit').map((x) => (
-              <label key={x.id} className="row small" style={{ justifyContent: 'space-between' }}>{x.label} ({money(x.amount)} each)<input className="input" type="number" min="0" max="9" style={{ width: 70, minHeight: 32 }} value={o.sel.qty[x.id] ?? 0} onChange={(e) => setQty(x.id, e.target.value)} /></label>
-            ))}
-            {items.filter((x) => x.kind === 'option').map((x) => (
-              <label key={x.id} className="check small" style={{ minHeight: 28 }}><input type="checkbox" checked={(o.sel.qty[x.id] ?? 0) > 0} onChange={(e) => setQty(x.id, e.target.checked ? 1 : 0)} /> {x.label} · {money(x.amount)}</label>
-            ))}
-            <span className="small muted" style={{ marginTop: 4 }}>Disbursements</span>
-            {items.filter((x) => x.kind === 'disbursement').map((x) => (
-              <label key={x.id} className="check small" style={{ minHeight: 28 }}><input type="checkbox" checked={(o.sel.qty[x.id] ?? 0) > 0} onChange={(e) => setQty(x.id, e.target.checked ? 1 : 0)} /> {x.label} · {money(x.amount)} <span className="muted">({x.taxable ? 'taxable' : 'non-taxable'})</span></label>
-            ))}
-            <label className="field"><span>Contract language</span><select className="select" value={o.lang} onChange={(e) => setO({ ...o, lang: e.target.value })}><option value="FR">Français</option><option value="EN">English</option></select></label>
-          </fieldset>
-          <div className="stack" style={{ borderTop: '1px solid var(--line-soft)', paddingTop: 12, gap: 4 }}>
-            {fees.lines.map((l) => <div key={l.id} className="kv small"><span>{l.label}{l.qty > 1 ? ` ×${l.qty}` : ''}</span><span className="mono">{money(l.amount)}</span></div>)}
-            <div className="kv small muted"><span>GST 5% (on {money(fees.taxableSub)})</span><span className="mono">{money(fees.gst)}</span></div>
-            <div className="kv small muted"><span>QST 9.975%</span><span className="mono">{money(fees.qst)}</span></div>
-            <div className="kv total"><span>Total</span><span className="mono">{money(fees.total)}</span></div>
-            {fees.deposit && <span className="badge warn" style={{ alignSelf: 'flex-start' }}>Private lender: deposit required before signing</span>}
-          </div>
-          <p className="small muted">Prices and rules from <Link to="/app/settings?tab=fees">Settings → Fee table</Link>.</p>
-          {!locked && <button className="btn btn-primary" onClick={() => setConfirm(true)}><Send size={16} /> Send for e-signature</button>}
-          <button className="btn" onClick={() => window.print()}><Printer size={16} /> Print / PDF</button>
-        </section>
-
-        <section className="card main" style={{ padding: 0 }}>
-          <div className="row between" style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)' }}>
-            <b>{fr ? 'Convention de services professionnels' : 'Professional Services Agreement'}</b>
-            <span className="small muted">Template: Service contract · {file.type}</span>
-          </div>
-          <div className="contract-paper">
-            <div className="row between"><Logo2 /><span className="small muted">{fr ? 'Dossier' : 'File'} {file.id}</span></div>
-            <h3 style={{ textAlign: 'center', fontSize: 18 }}>{fr ? 'CONVENTION DE SERVICES PROFESSIONNELS' : 'PROFESSIONAL SERVICES AGREEMENT'}</h3>
-            <p>{fr ? 'ENTRE : ' : 'BETWEEN: '}<b>Étude Dubois Notaires inc.</b>{fr ? ', représentée par ' : ', represented by '}{file.notary}</p>
-            <p>{fr ? 'ET : ' : 'AND: '}{file.clients.map((n, i) => <span key={n}>{i > 0 && (fr ? ' et ' : ' and ')}<span className="fill">{n}</span></span>)}</p>
-            <p><b>1. {fr ? 'Mandat' : 'Mandate'}.</b> {fr ? 'Le client retient les services du notaire pour ' : 'The client retains the notary for '}<span className="fill">{{ Purchase: fr ? 'l’achat et l’hypothèque' : 'the purchase and mortgage', Sale: fr ? 'la vente' : 'the sale', Refinance: fr ? 'le refinancement hypothécaire' : 'the mortgage refinance' }[file.type]}</span>{fr ? ' de l’immeuble situé au ' : ' of the property at '}<span className="fill">{file.addr}, {file.city}</span>.</p>
-            <p><b>2. {fr ? 'Honoraires' : 'Fees'}.</b> {fr ? 'Honoraires et débours totaux de ' : 'Total fees and disbursements of '}<span className="fill">{money(fees.total)}</span>{fr ? ', taxes incluses, payables à la signature à même les déboursés' : ', taxes included, payable at closing from the disbursements'}{fees.deposit ? (fr ? ' (un dépôt est exigé à l’ouverture du dossier, prêt privé).' : ' (a deposit is required when the file is opened: private lender).') : '.'}</p>
-            <p><b>3. {fr ? 'Documents' : 'Documents'}.</b> {fr ? 'Le client fournit deux pièces d’identité valides et tout document demandé.' : 'The client provides two valid IDs and any requested document.'}</p>
-            <div className="ghost-line" style={{ width: '92%' }} /><div className="ghost-line" style={{ width: '84%' }} />
-            <div className="grid-2" style={{ gap: 28, marginTop: 24 }}>
-              {file.clients.map((n) => (
-                <div key={n} className="sig-line">
-                  {file.contract.signed ? <span className="sig">{file.contract.signedBy ?? n}</span> : <span className="sig placeholder">&nbsp;</span>}
-                  <span className="small">{n}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </div>
-      {confirm && (
-        <Modal title="Send for e-signature" onClose={() => setConfirm(false)}>
-          <p>Send the {o.lang} service contract (<b>{money(fees.total)}</b>) for signature to:</p>
-          {file.parties.map((p) => <div key={p.name} className="kv card" style={{ padding: 12 }}><span>{p.name}</span><span className="muted">{p.email}</span></div>)}
-          <p className="small muted">Clients sign online in a few clicks; you’re notified when everyone has signed.</p>
-          <div className="row" style={{ justifyContent: 'flex-end' }}>
-            <button className="btn" onClick={() => setConfirm(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={() => { dispatch({ type: 'contract/send', id: file.id, total: fees.total, totalLabel: money(fees.total), lang: o.lang, options: o }); setConfirm(false); notify('Contract sent for e-signature') }}><Send size={16} /> Send</button>
-          </div>
-        </Modal>
-      )}
-    </>
-  )
-}
-
-const Logo2 = () => <b style={{ fontFamily: 'var(--sans)', color: 'var(--navy)' }}>Étude Dubois Notaires</b>
-
-function ClosingTab({ file }) {
-  const { dispatch, notify } = useStore()
-  const summary = [
-    `Dossier: ${file.id}`, `Type: ${file.type}`, `Client(s): ${file.clients.join(', ')}`, `Immeuble: ${file.addr}, ${file.city}`,
-    `Prêteur: ${file.lender}${file.mortgage ? ` · ${money(file.mortgage)}` : ''}`, `Signature: ${file.booking ? `${file.booking.date} ${file.booking.time}` : '—'}`,
-    `Honoraires: ${money(file.contract.total)}`, `Notaire: ${file.notary}`,
-  ].join('\n')
-  const copy = async () => { try { await navigator.clipboard.writeText(summary) } catch { /* blocked */ } notify('Procardex summary copied') }
-  const canSign = !!file.booking && stepDone(file, 'title')
-  const exportCsv = () => {
-    const rows = [['Dossier', 'Type', 'Clients', 'Adresse', 'Ville', 'Preteur', 'Hypotheque', 'Signature', 'Honoraires', 'Notaire', 'Parajuriste'],
-      [file.id, file.type, file.clients.join(' / '), file.addr, file.city, file.lender, file.mortgage ?? '', file.booking ? `${file.booking.date} ${file.booking.time}` : '', file.contract.total?.toFixed(2) ?? '', file.notary, file.paralegal]]
-    const csv = rows.map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\r\n')
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' })); a.download = `procardex-${file.id}.csv`; a.click()
-    notify('Procardex export downloaded')
-  }
-  const canClose = stageInfo(file).key === 'procardex'
-
-  return (
-    <div className="grid-2">
-      <section className="card stack">
-        <div className="row between"><h2>1 · Title search</h2>{stepDone(file, 'title') ? <Badge tone="ok">Complete</Badge> : <Badge tone="warn">To do</Badge>}</div>
-        <p className="small muted">Done by a paralegal in the Registre foncier and municipal portals; tick off each search. Registry automation will plug in here if an API is confirmed.</p>
-        {TITLE_ITEMS.map(([k, l]) => (
-          <label key={k} className="check"><input type="checkbox" checked={file.title[k]} onChange={() => dispatch({ type: 'title/toggle', id: file.id, key: k })} /> {l}</label>
-        ))}
-        <a className="small" href="https://www.registrefoncier.gouv.qc.ca" target="_blank" rel="noreferrer">Open Registre foncier ↗</a>
-      </section>
-
-      <section className="card stack">
-        <div className="row between"><h2>2 · Signing &amp; closing</h2>{stepDone(file, 'closing') ? <Badge tone="ok">Signed</Badge> : <Badge tone="warn">To do</Badge>}</div>
-        <div className="kv"><span className="muted">Appointment</span><span>{file.booking ? `${fmtDate(file.booking.date)} · ${file.booking.time} · ${file.booking.mode}` : 'Not booked yet'}</span></div>
-        <label className="check"><input type="checkbox" disabled={!canSign} checked={file.closing.consigno} onChange={() => dispatch({ type: 'closing/toggle', id: file.id, key: 'consigno', label: 'Deed signed in Consigno' })} /> Deed signed in Consigno</label>
-        <label className="check"><input type="checkbox" disabled={!canSign} checked={file.closing.lenderReport} onChange={() => dispatch({ type: 'closing/toggle', id: file.id, key: 'lenderReport', label: 'Final report sent to lender' })} /> Final report sent to lender</label>
-        <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => notify('Opening Consigno: signed in through the secure tunnel (demo)')}><ExternalLink size={14} /> Open in Consigno</button>
-        {!canSign && <p className="small muted row" style={{ gap: 6 }}><Lock size={13} /> Available once {!stepDone(file, 'title') ? 'the title search is complete' : ''}{!stepDone(file, 'title') && !file.booking ? ' and ' : ''}{!file.booking ? 'the signing is booked' : ''}.</p>}
-      </section>
-
-      <section className="card stack">
-        <div className="row between"><h2>3 · Final documents</h2>{file.docsPublished ? <Badge tone="ok">Published</Badge> : <Badge tone="warn">To do</Badge>}</div>
-        {file.finalDocs.length === 0 ? (
-          <button className="dropzone" disabled={!file.closing.consigno} onClick={() => { dispatch({ type: 'docs/upload', id: file.id }); notify('4 documents uploaded') }}>
-            <Upload size={20} /><b>Upload executed deeds &amp; statements</b><span className="small muted">{file.closing.consigno ? 'Click to add the final PDFs' : 'Available after signing in Consigno'}</span>
-          </button>
-        ) : file.finalDocs.map((d) => <div key={d.name} className="kv"><span className="row" style={{ gap: 6 }}><FileText size={15} />{d.name}</span><span className="small muted">{d.size}</span></div>)}
-        {file.finalDocs.length > 0 && !file.docsPublished && (
-          <button className="btn btn-primary" onClick={() => { dispatch({ type: 'docs/publish', id: file.id }); notify('Published · client emailed a secure link') }}><Send size={16} /> Publish to client portal</button>
-        )}
-        {file.docsPublished && <p className="small muted">Client notified by email · {file.portalViewed ? '✓ downloaded by client' : 'not yet downloaded'}</p>}
-      </section>
-
-      <section className="card stack">
-        <div className="row between"><h2>4 · Procardex &amp; archive</h2>{file.procardex ? <Badge tone="ok">Closed</Badge> : <Badge tone="warn">To do</Badge>}</div>
-        <p className="small muted">Procardex has no API. Copy this summary and paste it into Procardex.</p>
-        <pre className="summary">{summary}</pre>
-        <div className="row">
-          <button className="btn" onClick={copy}><Copy size={16} /> Copy summary</button>
-          <button className="btn" onClick={exportCsv}><Download size={16} /> Export for Procardex (.csv)</button>
-          <button className="btn btn-primary" disabled={!canClose} onClick={() => { dispatch({ type: 'procardex/done', id: file.id }); notify('File closed and archived') }}><Check size={16} /> Entered in Procardex · close file</button>
-        </div>
-      </section>
     </div>
   )
 }

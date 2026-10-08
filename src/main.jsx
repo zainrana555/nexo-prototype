@@ -23,6 +23,9 @@ import Booking from './pages/client/Booking'
 import Portal from './pages/client/Portal'
 import MyFile from './pages/client/MyFile'
 import Consult from './pages/client/Consult'
+import Guide from './pages/client/Guide'
+import Signup from './pages/client/Signup'
+import FirmSignup from './pages/FirmSignup'
 import './styles.css'
 
 // HashRouter keeps every route working on GitHub Pages (no server rewrites needed).
@@ -33,6 +36,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup-firm" element={<FirmSignup />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Overview />} />
             <Route path="leads" element={<Leads />} />
@@ -56,6 +60,8 @@ createRoot(document.getElementById('root')).render(
             <Route path="portal" element={<Portal />} />
             <Route path="file" element={<MyFile />} />
             <Route path="consult" element={<Consult />} />
+            <Route path="guide" element={<Guide />} />
+            <Route path="signup" element={<Signup />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

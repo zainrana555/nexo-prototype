@@ -111,7 +111,7 @@ export function AppLayout() {
           <div className="grow" />
           <div className="firm-card hide-sm">
             <div className="small muted">Firm</div>
-            <b>Étude Dubois Notaires</b>
+            <b>Acoca Notaires</b>
             <div className="small muted">Workspace · Montréal · FR / EN</div>
           </div>
         </nav>
@@ -244,7 +244,7 @@ function ClientCard() {
       <header>
         <Link to="/client/file" className="row" style={{ textDecoration: 'none', gap: 8 }}>
           <Logo size={28} />
-          <span style={{ lineHeight: 1.15 }}><b style={{ color: 'var(--navy)', display: 'block' }}>Étude Dubois</b><span className="small muted">{t(L, 'notaries')}</span></span>
+          <span style={{ lineHeight: 1.15 }}><b style={{ color: 'var(--navy)', display: 'block' }}>Acoca Notaires</b><span className="small muted">{t(L, 'notaries')}</span></span>
         </Link>
         <div className="seg light" role="group" aria-label="Language">
           <button className={L === 'fr' ? 'on' : ''} onClick={() => dispatch({ type: 'lang', lang: 'fr' })}>FR</button>

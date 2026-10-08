@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Download, TriangleAlert } from 'lucide-react'
 import { useStore, now } from '../../store'
 import { PageHeader, Badge, Modal, Tabs } from '../../ui'
-import { stageInfo, isClosed, fmtDate, STAGES, contractOverdue, money } from '../../logic'
+import { stageInfo, isClosed, fmtDate, stagesFor, contractOverdue, money } from '../../logic'
+import { FILE_TYPES, PROPERTY_TYPES, LENDER_TYPES } from '../../firm'
 import { addDays } from '../../data'
 
 export default function Files() {
@@ -49,7 +50,7 @@ export default function Files() {
       ]} />
       <div className="row">
         <label className="grow" style={{ flexBasis: 260 }}><span className="sr-only">Search files</span><input className="input" placeholder="Search client, address, file #" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-        <label><span className="sr-only">Type</span><select className="select" value={type} onChange={(e) => setType(e.target.value)}>{['All', 'Purchase', 'Sale', 'Refinance'].map((t) => <option key={t} value={t}>{t === 'All' ? 'All types' : t}</option>)}</select></label>
+        <label><span className="sr-only">Type</span><select className="select" value={type} onChange={(e) => setType(e.target.value)}>{['All', ...Object.keys(FILE_TYPES)].map((t) => <option key={t} value={t}>{t === 'All' ? 'All types' : t}</option>)}</select></label>
       </div>
       <div className="table-wrap">
         <table>
@@ -62,7 +63,7 @@ export default function Files() {
                 <td>{f.type}</td>
                 <td className="muted">{f.addr}, {f.city}</td>
                 <td><Badge tone={s.label === 'Closed' ? 'ok' : 'navy'}>{s.label}</Badge></td>
-                <td style={{ minWidth: 110 }}><div className="bar"><div style={{ width: `${(s.i / STAGES.length) * 100}%` }} /></div></td>
+                <td style={{ minWidth: 110 }}><div className="bar"><div style={{ width: `${(s.i / stagesFor(f).length) * 100}%` }} /></div></td>
                 <td className={f.escalated && !isClosed(f) ? 'warn' : ''}>{f.escalated && !isClosed(f) && <TriangleAlert size={14} style={{ verticalAlign: -2, marginRight: 4 }} />}{s.next} <span className="small muted">· {s.owner}</span></td>
                 <td className="muted">{fmtDate(f.closingDate)}</td>
               </tr>
@@ -96,7 +97,7 @@ function exportRows(rows, kind, notify) {
 export function NewFileModal({ onClose }) {
   const { state, dispatch, notify } = useStore()
   const nav = useNavigate()
-  const [f, setF] = useState({ name: '', type: 'Purchase', addr: '', city: 'Montréal', lang: 'FR', status: 'Offer accepted', clientType: 'Individual' })
+  const [f, setF] = useState({ name: '', type: 'Purchase', addr: '', city: 'Montréal', lang: 'FR', status: 'Offer accepted', clientType: 'Individual', propertyType: 'Condo', lenderType: 'Conventional' })
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const submit = (e) => {
     e.preventDefault()
@@ -105,7 +106,7 @@ export function NewFileModal({ onClose }) {
     dispatch({ type: 'file/add', file: {
       id, clients: [name], type: f.type, addr: f.addr || '—', city: f.city, lang: f.lang, notary: 'Me Anne Dubois', paralegal: state.auth?.name ?? 'Nathalie Roy',
       lender: '—', closingDate: addDays(30), contract: { sent: false, signed: false, total: 0, lang: f.lang }, bankReceived: false,
-      title: { deeds10: false, chain30: false, cadastre: false, index: false, bankruptcy: false, municipalTax: false, schoolTax: false }, funds: { requested: false, received: false }, clientType: f.clientType, purchaseStatus: f.status, booking: null, closing: { consigno: false, lenderReport: false }, finalDocs: [],
+      checklist: {}, sheet: { mode: 'En ligne', opened: new Date().toISOString().slice(0, 10) }, tracker: {}, mortgageBooking: null, propertyType: f.propertyType, lenderType: f.lenderType, funds: { requested: false, received: false }, clientType: f.clientType, purchaseStatus: f.status, booking: null, closing: { consigno: false, lenderReport: false }, finalDocs: [],
       docsPublished: false, portalViewed: false, procardex: false, escalated: false, reminders: 0,
       parties: [{ name, role: f.type === 'Sale' ? 'Seller' : f.type === 'Refinance' ? 'Borrower' : 'Buyer', email: '—', phone: '—', marital: '—', ids: [], liveness: 'Not started', questionnaire: 0 }],
       log: [{ t: now(), e: 'File created manually · questionnaire link emailed', who: state.auth?.name ?? 'System' }],
@@ -119,7 +120,9 @@ export function NewFileModal({ onClose }) {
       <form className="stack" onSubmit={submit}>
         <label className="field"><span>Client name</span><input className="input" value={f.name} onChange={set('name')} autoFocus /></label>
         <div className="grid-2">
-          <label className="field"><span>Transaction</span><select className="select" value={f.type} onChange={set('type')}><option>Purchase</option><option>Sale</option><option>Refinance</option></select></label>
+          <label className="field"><span>File type</span><select className="select" value={f.type} onChange={set('type')}>{Object.keys(FILE_TYPES).map((t) => <option key={t}>{t}</option>)}</select></label>
+          <label className="field"><span>Property type</span><select className="select" value={f.propertyType} onChange={set('propertyType')}>{PROPERTY_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
+          <label className="field"><span>Lender</span><select className="select" value={f.lenderType} onChange={set('lenderType')}>{LENDER_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
           <label className="field"><span>Client language</span><select className="select" value={f.lang} onChange={set('lang')}><option>FR</option><option>EN</option></select></label>
           <label className="field"><span>Transaction status</span><select className="select" value={f.status} onChange={set('status')}><option>Offer accepted</option><option>Conditional</option><option>Firm (conditions lifted)</option><option>Refinance approved</option></select></label>
           <label className="field"><span>Client is</span><select className="select" value={f.clientType} onChange={set('clientType')}><option>Individual</option><option>Corporation</option></select></label>

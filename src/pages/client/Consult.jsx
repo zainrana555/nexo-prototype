@@ -42,7 +42,7 @@ export default function Consult() {
         </div>
         <p className="small muted" style={{ textAlign: 'center' }}>{t(L, 'outlookNote')} {t(L, 'remindNote')}</p>
         {teams && <button className="btn btn-primary btn-block" onClick={() => notify(L === 'fr' ? 'Ouverture de Microsoft Teams (démo)' : 'Opening Microsoft Teams (demo)')}><Video size={16} /> {t(L, 'joinTeams')}</button>}
-        <button className="btn btn-block" onClick={() => downloadIcs({ title: 'Consultation – Étude Dubois Notaires', date: existing.date, time: existing.time, duration: existing.duration, location: existing.teamsUrl ?? OFFICE_ADDRESS })}><CalendarPlus size={16} /> {t(L, 'addToCal')}</button>
+        <button className="btn btn-block" onClick={() => downloadIcs({ title: 'Consultation – Acoca Notaires', date: existing.date, time: existing.time, duration: existing.duration, location: existing.teamsUrl ?? OFFICE_ADDRESS })}><CalendarPlus size={16} /> {t(L, 'addToCal')}</button>
         {phase === 'cancel' ? (
           <div className="banner warn stack" style={{ gap: 8 }}>
             <span>{t(L, 'cancelConfirm')}</span>

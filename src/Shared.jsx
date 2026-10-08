@@ -52,7 +52,7 @@ export function Composer({ onClose, to, lang = 'FR', fields, leadId, fileId }) {
 
 export const composerFields = (o) => ({
   client: o.first, adresse: o.address, address: o.address, dossier: o.file, file: o.file, total: o.total, notary: o.notary,
-  lien: '[lien sécurisé]', link: '[secure link]', signature: o.signature ?? 'Étude Dubois Notaires', montant: o.total, amount: o.total,
+  lien: '[lien sécurisé]', link: '[secure link]', signature: o.signature ?? 'Acoca Notaires', montant: o.total, amount: o.total,
 })
 
 // Full-screen ID viewer: front/back, zoom, automatic-reading results, approve/reject.

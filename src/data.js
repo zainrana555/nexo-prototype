@@ -1,17 +1,18 @@
+import { CHECKLISTS, fileType } from './firm'
 // Seed data for the Nexo demo. All names, addresses and amounts are fictional sample data.
 
 // `role` is the job title; `access` is the permission role (Settings → Roles & permissions).
 export const STAFF = [
-  { name: 'Nathalie Roy', role: 'Paralegal', access: 'Paralegal', email: 'nathalie@etude-demo.ca' },
-  { name: 'Me Anne Dubois', role: 'Notary', access: 'Owner', email: 'anne@etude-demo.ca' },
-  { name: 'Me Paul Lefebvre', role: 'Notary', access: 'Super admin', email: 'paul@etude-demo.ca' },
-  { name: 'Me Sophie Gagné', role: 'Notary', access: 'Notary', email: 'sophie@etude-demo.ca' },
-  { name: 'Me Marc Tremblay', role: 'Notary', access: 'Notary', email: 'marc@etude-demo.ca' },
-  { name: 'Me Julie Bélanger', role: 'Notary', access: 'Notary', email: 'julie@etude-demo.ca' },
-  { name: 'Me Éric Lavoie', role: 'Notary', access: 'Notary', email: 'eric@etude-demo.ca' },
-  { name: 'Me Nadia Lapointe', role: 'Notary', access: 'Notary', email: 'nadia@etude-demo.ca' },
-  { name: 'Karine Ouellet', role: 'Paralegal', access: 'Paralegal', email: 'karine@etude-demo.ca' },
-  { name: 'Sarah Pelletier', role: 'Reception', access: 'Reception', email: 'sarah@etude-demo.ca' },
+  { name: 'Nathalie Roy', role: 'Paralegal', access: 'Paralegal', email: 'nathalie@acoca-demo.ca' },
+  { name: 'Me Anne Dubois', role: 'Notary', access: 'Owner', email: 'anne@acoca-demo.ca' },
+  { name: 'Me Paul Lefebvre', role: 'Notary', access: 'Super admin', email: 'paul@acoca-demo.ca' },
+  { name: 'Me Sophie Gagné', role: 'Notary', access: 'Notary', email: 'sophie@acoca-demo.ca' },
+  { name: 'Me Marc Tremblay', role: 'Notary', access: 'Notary', email: 'marc@acoca-demo.ca' },
+  { name: 'Me Julie Bélanger', role: 'Notary', access: 'Notary', email: 'julie@acoca-demo.ca' },
+  { name: 'Me Éric Lavoie', role: 'Notary', access: 'Notary', email: 'eric@acoca-demo.ca' },
+  { name: 'Me Nadia Lapointe', role: 'Notary', access: 'Notary', email: 'nadia@acoca-demo.ca' },
+  { name: 'Karine Ouellet', role: 'Paralegal', access: 'Paralegal', email: 'karine@acoca-demo.ca' },
+  { name: 'Sarah Pelletier', role: 'Reception', access: 'Reception', email: 'sarah@acoca-demo.ca' },
 ]
 
 export const ROLES = ['Owner', 'Super admin', 'Notary', 'Paralegal', 'Reception']
@@ -37,28 +38,15 @@ export const INITIAL_ROLE_PERMS = {
 }
 export const accessOf = (user) => STAFF.find((s) => s.name === user?.name)?.access ?? 'Reception'
 
-// Fee table: published prices (dropdown), per-unit items, options and disbursements. Demo values.
-export const INITIAL_FEE_ITEMS = [
-  { id: 'base-p-std', kind: 'base', type: 'Purchase', label: 'Purchase with mortgage', amount: 1100, taxable: true },
-  { id: 'base-p-cash', kind: 'base', type: 'Purchase', label: 'Purchase without mortgage', amount: 900, taxable: true },
-  { id: 'base-p-priv', kind: 'base', type: 'Purchase', label: 'Purchase with private lender', amount: 1400, taxable: true, deposit: true },
-  { id: 'base-s-std', kind: 'base', type: 'Sale', label: 'Sale (discharge and adjustments)', amount: 650, taxable: true },
-  { id: 'base-r-std', kind: 'base', type: 'Refinance', label: 'Refinance', amount: 900, taxable: true },
-  { id: 'base-r-priv', kind: 'base', type: 'Refinance', label: 'Refinance with private lender', amount: 1200, taxable: true, deposit: true },
-  { id: 'u-party', kind: 'unit', label: 'Additional party', unit: 'party', amount: 125, taxable: true },
-  { id: 'u-discharge', kind: 'unit', label: 'Existing mortgage to discharge', unit: 'mortgage', amount: 300, taxable: true },
-  { id: 'o-remote', kind: 'option', label: 'Remote signing (Teams)', amount: 150, taxable: true },
-  { id: 'o-rush', kind: 'option', label: 'Rush file (under 5 business days)', amount: 250, taxable: true },
-  { id: 'o-corp', kind: 'option', label: 'Corporate client (resolution and verifications)', amount: 200, taxable: true },
-  { id: 'd-registry', kind: 'disbursement', label: 'Land registry publication fees', amount: 146, taxable: false },
-  { id: 'd-search', kind: 'disbursement', label: 'Searches (index, bankruptcy, certificates)', amount: 79, taxable: true },
-  { id: 'd-consigno', kind: 'disbursement', label: 'Consigno signature fees', amount: 8, taxable: true },
-]
+// Fee table: the firm's real price list (firm.js).
+export { INITIAL_FEE_ITEMS } from './firm'
 export const INITIAL_FEE_RULES = [
-  { id: 'r1', on: true, when: 'Client is a corporation', then: 'Add "Corporate client"' },
-  { id: 'r2', on: true, when: 'Seller declares existing mortgages', then: 'Set "Existing mortgage to discharge" quantity' },
-  { id: 'r3', on: true, when: 'Remote signing chosen in questionnaire', then: 'Add "Remote signing (Teams)"' },
-  { id: 'r4', on: true, when: 'Private lender', then: 'Require deposit before signing' },
+  { id: 'r1', on: true, when: 'Lender is a virtual bank (EQB, Manuvie, Computershare, CHIP, Haventree)', then: 'Use the virtual-bank price' },
+  { id: 'r2', on: true, when: 'Lender is a private lender (PADS, Olympia, Neighbourhood…)', then: 'Use the private-lender price and require a deposit' },
+  { id: 'r3', on: true, when: 'House sold over $2M / $3M', then: 'Use the $3,500 / $4,000 price' },
+  { id: 'r4', on: true, when: 'A party is a corporation', then: 'Add "Resolution (corporation)" (100 $)' },
+  { id: 'r5', on: true, when: 'Seller has more than one mortgage to discharge', then: 'Add "Additional radiation" (101 $ each)' },
+  { id: 'r6', on: true, when: 'Signing within 5 business days', then: 'Add "Rush fees" (500 $)' },
 ]
 
 export const TAX = { gst: 0.05, qst: 0.09975 }
@@ -87,10 +75,15 @@ function makeFile(f, upTo) {
     closingDate: addDays(21),
     contract: { sent: false, signed: false, total: 0, lang: 'FR' },
     bankReceived: false,
-    title: { deeds10: false, chain30: false, cadastre: false, index: false, bankruptcy: false, municipalTax: false, schoolTax: false },
+    checklist: {},
+    sheet: {},
+    tracker: {},
     funds: { requested: false, received: false },
     clientType: 'Individual',
+    propertyType: 'Condo',
+    lenderType: 'Conventional',
     booking: null,
+    mortgageBooking: null,
     closing: { consigno: false, lenderReport: false },
     finalDocs: [],
     docsPublished: false,
@@ -103,9 +96,10 @@ function makeFile(f, upTo) {
   const file = { ...base, ...f }
   if (upTo > 2) file.contract = { sent: true, signed: true, total: 1612.4, lang: 'FR', sentAt: addDays(-10) }
   if (upTo > 3) file.bankReceived = true
-  if (upTo > 4) file.title = { deeds10: true, chain30: true, cadastre: true, index: true, bankruptcy: true, municipalTax: true, schoolTax: true }
+  if (upTo > 4) for (const it of CHECKLISTS[fileType(file.type).checklist].items.filter((x) => x.dd)) file.checklist = { ...file.checklist, [it.id]: { req: true, para: true, notary: true } }
   if (upTo > 5) file.funds = { requested: true, received: upTo > 6 }
-  if (upTo > 5) file.booking = file.booking ?? { mode: 'In person', date: addDays(-3), time: '10:30' }
+  if (upTo > 5) file.booking = file.booking ?? { mode: 'In person', date: addDays(-3), time: '10:30', notary: file.notary ?? 'Me Anne Dubois' }
+  if (upTo > 5 && fileType(file.type).twoMeetings) file.mortgageBooking = file.mortgageBooking ?? { mode: 'In person', date: addDays(-8), time: '14:00', notary: file.notary ?? 'Me Anne Dubois' }
   if (upTo > 6) file.closing = { consigno: true, lenderReport: true }
   if (upTo > 7) {
     file.finalDocs = FINAL_DOCS
@@ -132,7 +126,7 @@ const log = (...entries) => entries.map(([t, e, who = 'System']) => ({ t, e, who
 
 export const INITIAL_FILES = [
   makeFile({
-    id: '26-0412', clients: ['Lucas Bergeron', 'Chloé Bergeron'], type: 'Purchase', addr: '4520 av. des Érables', city: 'Montréal',
+    id: '26-0412', clients: ['Lucas Bergeron', 'Chloé Bergeron'], type: 'Purchase', propertyType: 'House', addr: '4520 av. des Érables', city: 'Montréal',
     escalated: true, reminders: 2,
     parties: [
       party('Lucas Bergeron', 'Buyer', [idDoc('Passport', '2031-04-30'), idDoc("Driver's licence", '2029-08-15')]),
@@ -152,7 +146,7 @@ export const INITIAL_FILES = [
     log: log(['Yesterday', 'Service contract sent for e-signature', 'Nathalie Roy']),
   }, 2),
   makeFile({
-    id: '26-0421', clients: ['Kevin Morin', 'Julie Morin'], type: 'Purchase', addr: '35 rue des Pins', city: 'Brossard', lender: 'Banque Exemple',
+    id: '26-0421', clients: ['Kevin Morin', 'Julie Morin'], type: 'Purchase', lenderType: 'Virtual bank', lender: 'EQB', addr: '35 rue des Pins', city: 'Brossard', lender: 'Banque Exemple',
     parties: [
       party('Kevin Morin', 'Buyer', [idDoc('Passport', '2030-09-09'), idDoc("Driver's licence", '2027-12-12')], { marital: 'Common-law' }),
       party('Julie Morin', 'Buyer', [idDoc('Passport', '2031-02-02'), idDoc("Driver's licence", '2028-07-07')], { marital: 'Common-law' }),
@@ -161,7 +155,8 @@ export const INITIAL_FILES = [
   }, 3),
   makeFile({
     id: '26-0423', clients: ['Isabelle Fortin'], type: 'Purchase', addr: '980 ch. du Lac', city: 'Laval', closingDate: addDays(2),
-    booking: { mode: 'In person', date: addDays(2), time: '10:30' },
+    booking: { mode: 'In person', date: addDays(2), time: '10:30', notary: 'Me Anne Dubois' },
+    mortgageBooking: { mode: 'Teams video', date: addDays(-3), time: '14:00', notary: 'Me Anne Dubois' },
     parties: [party('Isabelle Fortin', 'Buyer', [idDoc('Passport', '2033-01-01'), idDoc("Driver's licence", '2029-01-01')], { marital: 'Single' })],
     log: log(['Yesterday', 'Client booked signing (in person)']),
   }, 6),
@@ -171,18 +166,34 @@ export const INITIAL_FILES = [
     log: log(['Yesterday', 'Final documents published to client portal', 'Nathalie Roy']),
   }, 8),
   makeFile({
-    id: '26-0429', clients: ['Mélanie Pelletier'], type: 'Sale', addr: '210 rue Principale', city: 'Gatineau', closingDate: addDays(-6),
+    id: '26-0429', clients: ['Mélanie Pelletier'], type: 'Sale', propertyType: 'House', addr: '210 rue Principale', city: 'Gatineau', closingDate: addDays(-6),
     parties: [party('Mélanie Pelletier', 'Seller', [idDoc('Passport', '2031-11-11'), idDoc("Driver's licence", '2028-11-11')], { marital: 'Single' })],
     log: log(['3 days ago', 'File closed and archived', 'Nathalie Roy']),
   }, 9),
+  makeFile({
+    id: '26-0427', clients: ['Gestion Immobilière Exemple inc.'], clientType: 'Corporation', type: 'Discharge', addr: '18 rue des Cèdres', city: 'Longueuil', lender: 'Prêteur privé (Olympia)', lenderType: 'Private lender',
+    parties: [party('Simon Paquette', 'Borrower', [idDoc('Passport', '2031-03-03'), idDoc("Driver's licence", '2029-03-03')], { corporate: true, marital: 'Corporation' })],
+    log: log(['Yesterday', 'Payout statement requested from the lender', 'Karine Ouellet']),
+  }, 4),
+  makeFile({
+    id: '26-0432', clients: ['Succession de feu Robert Gauthier'], type: 'Succession', addr: '12 rue des Lilas', city: 'Montréal', notary: 'Me Paul Lefebvre', lender: '—',
+    parties: [party('Hélène Gauthier', 'Liquidator', [idDoc('Passport', '2030-07-07'), idDoc("Driver's licence", '2028-07-07')], { marital: 'Widowed' })],
+    log: log(['2 days ago', 'Will searches requested (Chambre des notaires, Barreau)', 'Nathalie Roy']),
+  }, 4),
+  makeFile({
+    id: '26-0434', clients: ['Marc et Lise Fontaine'], type: 'Wills & mandates', addr: '—', city: 'Laval', notary: 'Me Sophie Gagné', lender: '—',
+    parties: [party('Marc Fontaine', 'Testator', [idDoc('Passport', '2031-01-01'), idDoc("Driver's licence", '2029-01-01')]), party('Lise Fontaine', 'Testator', [idDoc('Passport', '2031-02-02'), idDoc("Driver's licence", '2029-02-02')])],
+    log: log(['Yesterday', 'Wills and mandates questionnaire received', 'Sarah Pelletier']),
+  }, 2),
 ]
 
 // The demo lead is the one the guided journey follows.
 export const INITIAL_LEADS = [
   {
-    id: DEMO_LEAD, isDemo: true, name: 'Émilie Gagnon', email: 'emilie.gagnon@exemple.ca', phone: '514-555-0142', source: 'Email',
+    id: DEMO_LEAD, isDemo: true, name: 'Émilie Gagnon', email: 'emilie.gagnon@exemple.ca', phone: '514-555-0142', source: 'Website form', formNo: '1649881573', subject: 'Achat condo - Soumission',
+    service: 'Real estate', propertyType: 'Condo', lenderType: 'Conventional',
     type: 'Purchase', property: '1450 rue Sherbrooke E., app. 302, Montréal', closingDate: addDays(35), lang: 'FR', status: 'New', received: 'Today 08:41',
-    message: 'Bonjour, nous avons une promesse d’achat acceptée pour un condo à Montréal. Quels sont vos honoraires et vos délais? La signature est prévue dans environ 5 semaines. Merci! — Émilie',
+    message: 'Bonjour, je suis en processus d’achat d’un condo (4 ½) à Montréal, avec une offre acceptée et toutes les conditions levées, pour une signature chez le notaire prévue dans environ 5 semaines. Je souhaiterais obtenir une soumission pour les frais liés à l’achat. Merci beaucoup!',
     log: [{ t: 'Today 08:41', e: 'Inquiry received by email', who: 'System' }, { t: 'Today 08:41', e: 'Automation: acknowledgement sent by email + SMS', who: 'System' }],
   },
   {
@@ -190,7 +201,7 @@ export const INITIAL_LEADS = [
     property: 'Condo, Rosemont, Montréal', closingDate: addDays(45), lang: 'FR', status: 'New', received: 'Today 09:12', callMinutes: 4.2,
     message: 'Résumé de l’appel (agent IA) : premier achat d’un condo à Rosemont, offre acceptée, signature prévue vers le début décembre. Demande une estimation des honoraires et si la signature à distance est possible. Préfère le français. Rappeler en après-midi.',
     transcript: [
-      ['Agent IA', 'Étude Dubois Notaires, bonjour! Je suis l’assistante virtuelle. Comment puis-je vous aider?'],
+      ['Agent IA', 'Acoca Notaires, bonjour! Je suis l’assistante virtuelle. Comment puis-je vous aider?'],
       ['Appelant', 'Bonjour, j’achète un condo à Rosemont, mon offre a été acceptée hier.'],
       ['Agent IA', 'Félicitations! Avez-vous une date de signature prévue?'],
       ['Appelant', 'Vers le début décembre. Je voudrais savoir combien coûtent vos services, et si on peut signer à distance.'],
@@ -206,7 +217,25 @@ export const INITIAL_LEADS = [
     log: [{ t: 'Yesterday', e: 'Inquiry received via website form · corporate client detected', who: 'System' }, { t: 'Yesterday', e: 'Automation: email + SMS acknowledgement sent', who: 'System' }],
   },
   {
-    id: 'L-1043', name: 'Olivier Martin', email: 'o.martin@exemple.ca', phone: '438-555-0177', source: 'Website form', type: 'Sale',
+    id: 'L-1047', name: 'Équipe Courtage Exemple (courtier)', email: 'acquisitions@courtage-exemple.ca', phone: '514-555-0181', source: 'Broker email', service: 'Real estate',
+    type: 'Purchase', propertyType: 'Commercial', lenderType: 'Conventional', property: 'Immeuble commercial, Vaudreuil', closingDate: addDays(14), lang: 'EN', status: 'New', received: 'Today 07:32',
+    subject: 'Commercial property – Vaudreuil', message: 'Hello, please provide the notary fee for this commercial property in Vaudreuil. Signing day as soon as possible. Thank you!',
+    log: [{ t: 'Today 07:32', e: 'Broker email received at info@ · forwarded by reception', who: 'System' }],
+  },
+  {
+    id: 'L-1048', name: 'Claire et Martin Roy', email: 'claire.roy@exemple.ca', phone: '450-555-0161', source: 'Referral (financial planner)', service: 'Wills & mandates',
+    type: 'Wills & mandates', property: '—, Laval', lang: 'FR', status: 'New', received: 'Yesterday',
+    message: 'Notre planificateur financier nous a recommandé votre étude pour nos testaments et mandats de protection (couple).',
+    log: [{ t: 'Yesterday', e: 'Referral received from a financial planner', who: 'System' }],
+  },
+  {
+    id: 'L-1049', name: 'David Bélanger', email: 'd.belanger@exemple.ca', phone: '514-555-0175', source: 'Phone', service: 'Will search',
+    type: 'Succession', property: '—, Montréal', lang: 'FR', status: 'New', received: '2 days ago',
+    message: 'Mon père est décédé le mois dernier; nous ne savons pas s’il avait un testament. Pouvez-vous faire une recherche testamentaire?',
+    log: [{ t: '2 days ago', e: 'Call logged by reception', who: 'Sarah Pelletier' }],
+  },
+  {
+    id: 'L-1043', name: 'Olivier Martin', email: 'o.martin@exemple.ca', phone: '438-555-0177', source: 'Website form', formNo: '1649877210', subject: 'Vente duplex - quittance', service: 'Real estate', propertyType: 'Multi ≤ 6 units', type: 'Sale',
     property: '62 rue Bélanger, Montréal', closingDate: addDays(50), lang: 'FR', status: 'New', received: 'Today 07:15',
     message: 'Je vends mon duplex, l’acheteur a choisi son notaire mais j’ai besoin d’une quittance. Combien?',
     log: [{ t: 'Today 07:15', e: 'Inquiry received via website form', who: 'System' }],
@@ -265,9 +294,12 @@ export const STEP_KINDS = [
 ]
 
 export const INITIAL_TEMPLATES = [
-  { id: 't1', group: 'Leads', name: 'Mini-mandate · Buyer', subject: { FR: 'Votre soumission – achat – {{adresse}}', EN: 'Your quote – purchase – {{address}}' }, body: { FR: 'Bonjour {{client}},\n\nMerci de votre demande. Pour votre achat, nos honoraires sont de {{total}} (taxes et débours inclus).\n\nDocuments requis :\n• Deux pièces d’identité avec photo\n• Votre adresse actuelle et votre état civil\n• Les coordonnées du vendeur\n\nPour accepter et ouvrir votre dossier : {{lien}}\n\n{{signature}}', EN: 'Hello {{client}},\n\nThank you for your inquiry. For your purchase, our fees are {{total}} (taxes and disbursements included).\n\nRequired documents:\n• Two photo IDs\n• Your current address and marital status\n• The seller’s details\n\nTo accept and open your file: {{link}}\n\n{{signature}}' } },
-  { id: 't2', group: 'Leads', name: 'Mini-mandate · Seller', subject: { FR: 'Votre soumission – vente – {{adresse}}', EN: 'Your quote – sale – {{address}}' }, body: { FR: 'Bonjour {{client}},\n\nPour votre vente, nos honoraires sont de {{total}}…', EN: 'Hello {{client}},\n\nFor your sale, our fees are {{total}}…' } },
-  { id: 't3', group: 'Leads', name: 'Mini-mandate · Refinance', subject: { FR: 'Votre soumission – refinancement – {{adresse}}', EN: 'Your quote – refinance – {{address}}' }, body: { FR: 'Bonjour {{client}},\n\nPour votre refinancement, nos honoraires sont de {{total}}…', EN: 'Hello {{client}},\n\nFor your refinance, our fees are {{total}}…' } },
+  { id: 't1', group: 'Leads', name: 'Mini-mandate · Buyer', subject: { FR: "Votre achat – {{adresse}}", EN: "Your purchase – {{address}}" }, body: { FR: "Bonjour {{client}},\n\nFélicitations pour votre nouvel achat!\n\nVeuillez trouver ci-dessous les informations relatives à l’acquisition de votre nouvelle propriété ({{adresse}}). Nous vous joignons un guide explicatif destiné à l’acheteur.\n\nNos honoraires pour ce dossier sont approximativement de {{total}} + taxes et frais. Nous vous saurions gré de confirmer votre acceptation de ces frais (bouton ci-dessous). Dès réception, l’un(e) de nos parajuristes procédera à la recherche des titres et vous transmettra un contrat de service professionnel détaillant l’ensemble des frais.\n\nVeuillez informer votre représentant bancaire de faire parvenir les instructions hypothécaires au nom du notaire à être désigné. Les rendez-vous sont fixés uniquement après la signature du contrat de service et la réception des instructions bancaires.\n\nAfin de débuter votre dossier, veuillez nous fournir dans les plus brefs délais :\n• Deux pièces d’identité valides (avec photo, en couleurs, recto verso), ainsi qu’une copie de votre passeport canadien pour chaque acheteur\n• Votre adresse complète\n• Votre état civil (et, selon le cas, jugement de divorce, contrat et certificat de mariage, ou certificat de décès; les conjoints de fait jamais mariés sont célibataires)\n• Les coordonnées de toutes les parties, incluant le vendeur, afin que nous puissions lui transmettre ses frais\n• Si vous n’avez pas de courtier : la promesse d’achat acceptée, le certificat de localisation et les coordonnées du syndicat / de la gestion\n\nUne assurance habitation prenant effet à la date de l’acte de vente devra être obtenue.\n\nTout délai pourrait entraîner un report de votre rendez-vous. Merci d’avoir choisi Acoca Notaires. Si vous ne souhaitez pas poursuivre avec notre étude, avisez-nous dans les plus brefs délais.\n\n{{signature}}", EN: "Hello {{client}},\n\nCongratulations on your new purchase!\n\nPlease find below information regarding the acquisition of your new property ({{address}}). An explanatory guide for buyers is attached.\n\nOur professional fees for this file are approximately {{total}} + taxes and disbursements. Kindly confirm your acceptance of these fees (button below). Upon confirmation, one of our paralegals will proceed with the title search and send you a professional services agreement detailing all applicable fees.\n\nPlease ask your bank representative to send the mortgage instructions in the name of the notary to be designated. Appointments are scheduled only after the services agreement is signed and the mortgage instructions are received.\n\nTo open your file, please provide as soon as possible:\n• Two valid pieces of identification (photo, in colour, front and back), plus a copy of your Canadian passport for each purchaser\n• Your full address\n• Your civil status (and, as applicable, divorce judgment, marriage contract and certificate, or death certificate; common-law partners never married are single)\n• Contact details of all parties, including the seller, so we can send them their fees\n• If you have no broker: the accepted promise to purchase, the certificate of location and the syndicate / management contacts\n\nA home insurance policy effective on the date of the deed of sale must be obtained.\n\nAny delay may postpone your appointment. Thank you for choosing Acoca Notaires. If you do not wish to proceed with our firm, please let us know as soon as possible.\n\n{{signature}}" } },
+  { id: 't2', group: 'Leads', name: 'Mini-mandate · Seller', subject: { FR: "Votre vente – {{adresse}}", EN: "Your sale – {{address}}" }, body: { FR: "Bonjour {{client}},\n\nMerci d’avoir choisi Acoca Notaires pour la vente de votre propriété ({{adresse}}). Vous trouverez ci-joint notre guide explicatif destiné au vendeur.\n\nNos honoraires pour ce dossier sont approximativement de {{total}} + taxes et frais, payables à même le produit de la vente. Veuillez confirmer votre acceptation (bouton ci-dessous).\n\nAfin de débuter votre dossier, veuillez nous fournir :\n• Deux pièces d’identité valides (photo, en couleurs, recto verso)\n• Votre état civil et, s’il y a lieu, les documents qui s’y rattachent\n• Le nom de votre institution financière et votre numéro de prêt hypothécaire (pour l’état de compte de quittance)\n• Votre nouvelle adresse après la vente\n• Si la propriété est louée : les baux en vigueur et la liste des loyers\n• Les titres originaux, si vous les avez\n\n{{signature}}", EN: "Hello {{client}},\n\nThank you for choosing Acoca Notaires for the sale of your property ({{address}}). Our explanatory guide for sellers is attached.\n\nOur professional fees for this file are approximately {{total}} + taxes and disbursements, payable from the sale proceeds. Kindly confirm your acceptance (button below).\n\nTo open your file, please provide:\n• Two valid pieces of identification (photo, in colour, front and back)\n• Your civil status and related documents, if any\n• Your lender’s name and mortgage loan number (for the payout statement)\n• Your new address after the sale\n• If the property is rented: current leases and the rent roll\n• Original titles, if you have them\n\n{{signature}}" } },
+  { id: 't3', group: 'Leads', name: 'Mini-mandate · Refinance', subject: { FR: "Votre refinancement – {{adresse}}", EN: "Your refinancing – {{address}}" }, body: { FR: "Bonjour {{client}},\n\nSuite à notre appel, nous vous transmettons les détails relatifs au refinancement de votre propriété ({{adresse}}).\n\nNos honoraires sont estimés à environ {{total}} + taxes et frais. Veuillez confirmer votre acceptation (bouton ci-dessous). Informez aussi votre représentant bancaire de faire parvenir les instructions hypothécaires au nom du notaire à être désigné.\n\nDès réception, une parajuriste vous fera parvenir un contrat de service professionnel détaillant l’ensemble des frais, puis nous fixerons les rendez-vous pour la signature.\n\nVeuillez nous fournir : deux pièces d’identité valides (photo, couleurs, recto verso) et une copie de votre passeport canadien, votre adresse complète, votre état civil et les documents qui s’y rattachent.\n\nUne assurance prenant effet à la date de l’acte d’hypothèque devra être obtenue.\n\n{{signature}}", EN: "Hello {{client}},\n\nFollowing our call, here are the details regarding the refinancing of your property ({{address}}).\n\nOur fees are estimated at approximately {{total}} + taxes and disbursements. Kindly confirm your acceptance (button below). Please also ask your bank representative to send the mortgage instructions in the name of the notary to be designated.\n\nUpon confirmation, a paralegal will send you a professional services agreement detailing all fees, and we will then schedule the signing appointments.\n\nPlease provide: two valid pieces of ID (photo, colour, front and back) and a copy of your Canadian passport, your full address, your civil status and related documents.\n\nInsurance effective on the date of the mortgage deed must be obtained.\n\n{{signature}}" } },
+  { id: 't11', group: 'Leads', name: 'Mini-mandate · Wills & mandates', subject: { FR: "Votre testament et mandat de protection", EN: "Your will and protection mandate" }, body: { FR: "Bonjour {{client}},\n\nNous sommes ravis de vous accompagner dans la préparation de votre testament (et de votre mandat de protection). Vous trouverez ci-joint nos questionnaires afin de bien préparer votre première rencontre.\n\nLes testaments simples et les mandats de protection débutent à 650 $ + frais d’inscription et taxes, par document. À la suite de la première rencontre, des frais de consultation initiale de 250 $ + taxes seront facturés et entièrement crédités si vous poursuivez.\n\nPour un rendez-vous en personne, apportez deux pièces d’identité valides, votre carte d’assurance sociale et un document attestant votre état civil. Une rencontre en ligne (Teams) est aussi possible.\n\n{{signature}}", EN: "Hello {{client}},\n\nWe are delighted to help you prepare your will (and protection mandate). Please find attached our questionnaires to prepare your first meeting.\n\nSimple wills and protection mandates start at $650 plus registration fees and taxes, per document. After the first meeting, an initial consultation fee of $250 + taxes is billed and fully credited if you proceed.\n\nFor an in-person meeting, bring two valid IDs, your social insurance card and a document showing your civil status. An online (Teams) meeting is also possible.\n\n{{signature}}" } },
+  { id: 't12', group: 'Leads', name: 'Mini-mandate · Homologation', subject: { FR: "Homologation d’un mandat de protection", EN: "Homologation of a protection mandate" }, body: { FR: "Bonjour {{client}},\n\nMerci de nous avoir contactés concernant l’homologation d’un mandat de protection. Il s’agit d’une procédure en plusieurs étapes (évaluations médicale et psychosociale, rencontre des mandataires, vérification du mandat, notification des parties, démarches notariales et judiciaires) qui prend généralement entre 6 et 9 mois.\n\nNos honoraires sont de 3 500 $ + taxes, en plus des déboursés. Si vous souhaitez aller de l’avant, nous vous ferons parvenir un contrat de service détaillé et la liste des documents requis.\n\n{{signature}}", EN: "Bonjour {{client}},\n\nMerci de nous avoir contactés concernant l’homologation d’un mandat de protection. Il s’agit d’une procédure en plusieurs étapes (évaluations médicale et psychosociale, rencontre des mandataires, vérification du mandat, notification des parties, démarches notariales et judiciaires) qui prend généralement entre 6 et 9 mois.\n\nNos honoraires sont de 3 500 $ + taxes, en plus des déboursés. Si vous souhaitez aller de l’avant, nous vous ferons parvenir un contrat de service détaillé et la liste des documents requis.\n\n{{signature}}" } },
+  { id: 't13', group: 'Leads', name: 'Mini-mandate · Will search', subject: { FR: "Recherche testamentaire", EN: "Will search" }, body: { FR: "Bonjour {{client}},\n\nMerci de votre confiance. Vous trouverez ci-joint notre questionnaire pour les recherches testamentaires.\n\nSans le certificat de décès original délivré par le Directeur de l’état civil, nous ne pourrons pas fournir les certificats de recherche. À la réception du questionnaire et du certificat, nous lancerons les recherches à la Chambre des notaires et au Barreau du Québec. Un dépôt de 400 $ est requis avant de commencer.\n\n{{signature}}", EN: "Bonjour {{client}},\n\nMerci de votre confiance. Vous trouverez ci-joint notre questionnaire pour les recherches testamentaires.\n\nSans le certificat de décès original délivré par le Directeur de l’état civil, nous ne pourrons pas fournir les certificats de recherche. À la réception du questionnaire et du certificat, nous lancerons les recherches à la Chambre des notaires et au Barreau du Québec. Un dépôt de 400 $ est requis avant de commencer.\n\n{{signature}}" } },
   { id: 't4', group: 'Files', name: 'Questionnaire invitation', subject: { FR: 'Ouvrez votre dossier en ligne – {{adresse}}', EN: 'Open your file online – {{address}}' }, body: { FR: 'Bonjour {{client}},\n\nVotre dossier {{dossier}} est ouvert. Remplissez le questionnaire sécurisé : {{lien}}', EN: 'Hello {{client}},\n\nYour file {{file}} is open. Complete the secure questionnaire: {{link}}' } },
   { id: 't5', group: 'Files', name: 'Reminder · Missing documents', subject: { FR: 'Rappel : documents manquants – {{adresse}}', EN: 'Reminder: missing documents – {{address}}' }, body: { FR: 'Bonjour {{client}},\n\nIl nous manque encore : {{manquants}}.', EN: 'Hello {{client}},\n\nWe are still missing: {{missing}}.' } },
   { id: 't6', group: 'Files', name: 'Service contract for signature', subject: { FR: 'Votre convention de services à signer – {{adresse}}', EN: 'Your service contract to sign – {{address}}' }, body: { FR: 'Bonjour {{client}},\n\nVeuillez signer votre convention : {{lien}}', EN: 'Hello {{client}},\n\nPlease sign your service contract: {{link}}' } },

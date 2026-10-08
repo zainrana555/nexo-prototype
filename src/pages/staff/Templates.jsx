@@ -49,7 +49,7 @@ function Editor({ tpl, onClose, readOnly }) {
   const { dispatch, notify } = useStore()
   const [lang, setLang] = useState('FR')
   const [t, setT] = useState({ access: ROLES, recipients: 'Client', ...tpl })
-  const [testTo, setTestTo] = useState('nathalie@etude-demo.ca')
+  const [testTo, setTestTo] = useState('nathalie@acoca-demo.ca')
   const insert = (f) => setT({ ...t, body: { ...t.body, [lang]: t.body[lang] + ' ' + f } })
   const toggleRole = (r) => setT({ ...t, access: t.access.includes(r) ? t.access.filter((x) => x !== r) : [...t.access, r] })
   return (

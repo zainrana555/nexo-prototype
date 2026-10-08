@@ -6,6 +6,7 @@ import { PageHeader, Modal, Badge } from '../../ui'
 import { STAFF, BOOKABLE } from '../../data'
 import { appointments, outlookBusy, toMin, fmtTime, iso, teamsUrl, DURATION } from '../../availability'
 import { bookingUnlocked, isClosed, fmtDate } from '../../logic'
+import { fileType } from '../../firm'
 import SlotPicker from '../../SlotPicker'
 
 const HOURS = [9, 10, 11, 12, 13, 14, 15, 16]
@@ -51,7 +52,7 @@ export default function Calendar() {
         sub="Shared team calendar, synced with each person’s Outlook. Paralegals can book for any notary."
         actions={<>
           <button className="btn" onClick={runReminders}><BellRing size={16} /> Send due reminders</button>
-          <button className="btn" onClick={async () => { try { await navigator.clipboard.writeText('https://book.nexo.demo/etude-dubois/consultation') } catch { /* blocked */ } notify('Consultation booking link copied') }}><Copy size={16} /> Copy booking link</button>
+          <button className="btn" onClick={async () => { try { await navigator.clipboard.writeText('https://book.nexo.demo/acoca-notaires/consultation') } catch { /* blocked */ } notify('Consultation booking link copied') }}><Copy size={16} /> Copy booking link</button>
           <button className="btn btn-primary" onClick={() => setBooking(true)}><Plus size={16} /> Book appointment</button>
         </>}
       />
@@ -83,7 +84,7 @@ export default function Calendar() {
                     {itemsAt(c, h).map((e) => e.busy ? (
                       <div key={e.id} className="cal-ev busy" title="Imported from Outlook">{e.time}–{e.end} {e.title}</div>
                     ) : (
-                      <button key={e.id} className={'cal-ev ' + e.kind} onClick={() => setSel(e)}><b>{e.time}</b> {e.title.replace('Signing – ', '✍ ').replace('Consultation – ', '💬 ')}</button>
+                      <button key={e.id} className={'cal-ev ' + e.kind} onClick={() => setSel(e)}><b>{e.time}</b> {e.title}</button>
                     ))}
                   </div>
                 ))}
@@ -112,12 +113,12 @@ export function EventModal({ ev, onClose }) {
   const Icon = MODE_ICON[ev.mode] ?? MapPin
   const isSigning = ev.kind === 'signing'
   const reschedule = () => {
-    if (isSigning) dispatch({ type: 'booking/reschedule', id: ev.fileId, by: 'Staff', changes: { date: pick.date, time: pick.time } })
+    if (isSigning) dispatch({ type: 'booking/reschedule', id: ev.fileId, which: ev.which, by: 'Staff', changes: { date: pick.date, time: pick.time } })
     else dispatch({ type: 'event/move', id: ev.id, by: 'Staff', changes: { date: pick.date, time: pick.time } })
     notify('Moved · Outlook updated · client notified'); onClose()
   }
   const cancel = () => {
-    if (isSigning) dispatch({ type: 'booking/cancel', id: ev.fileId, by: 'Staff' })
+    if (isSigning) dispatch({ type: 'booking/cancel', id: ev.fileId, which: ev.which, by: 'Staff' })
     else dispatch({ type: 'event/cancel', id: ev.id, by: 'Staff' })
     notify('Cancelled · removed from Outlook · client notified'); onClose()
   }
@@ -156,7 +157,7 @@ export function EventModal({ ev, onClose }) {
 
 export function BookModal({ onClose, fileId, leadId }) {
   const { state, dispatch, notify } = useStore()
-  const files = state.files.filter((f) => !isClosed(f) && !f.booking)
+  const files = state.files.filter((f) => !isClosed(f) && (!f.booking || (fileType(f.type).twoMeetings && !f.mortgageBooking)))
   const leads = state.leads.filter((l) => ['New', 'Mini-mandate sent', 'Follow-up'].includes(l.status))
   const [type, setType] = useState(leadId ? 'consultation' : 'signing')
   const [fid, setFid] = useState(fileId ?? files[0]?.id)
@@ -164,6 +165,8 @@ export function BookModal({ onClose, fileId, leadId }) {
   const file = state.files.find((f) => f.id === fid)
   const lead = state.leads.find((l) => l.id === lid)
   const [who, setWho] = useState(file?.notary ?? 'Me Anne Dubois')
+  const two = !!file && fileType(file.type).twoMeetings
+  const [which, setWhich] = useState(file && two && !file.mortgageBooking ? 'mortgage' : 'main')
   const [mode, setMode] = useState('In person')
   const [pick, setPick] = useState(null)
   const duration = type === 'signing' ? DURATION.signing : BOOKABLE.find((b) => b.name === who)?.role === 'Paralegal' ? DURATION.consultationParalegal : DURATION.consultation
@@ -173,7 +176,7 @@ export function BookModal({ onClose, fileId, leadId }) {
     const id = 'b' + Date.now().toString(36)
     const tUrl = mode === 'Teams video' ? teamsUrl(id) : null
     if (type === 'signing') {
-      dispatch({ type: 'book', id: fid, booking: { mode, date: pick.date, time: pick.time, notary: who, attendees: file.parties.map((p) => p.name), teamsUrl: tUrl, bookedBy: 'Staff' } })
+      dispatch({ type: 'book', id: fid, which, booking: { mode, date: pick.date, time: pick.time, notary: who, attendees: file.parties.map((p) => p.name), teamsUrl: tUrl, bookedBy: 'Staff' } })
     } else {
       dispatch({ type: 'consult/book', event: { id, title: `Consultation – ${lead.name}`, date: pick.date, time: pick.time, duration, mode, who, leadId: lead.id, attendees: [lead.name], teamsUrl: tUrl, bookedBy: 'Staff' } })
     }
@@ -192,6 +195,9 @@ export function BookModal({ onClose, fileId, leadId }) {
           )}
           <label className="field"><span>With</span><select className="select" value={who} onChange={(e) => { setWho(e.target.value); setPick(null) }}>{people.map((p) => <option key={p.name} value={p.name}>{p.name} ({p.role})</option>)}</select></label>
           <label className="field"><span>How</span><select className="select" value={mode} onChange={(e) => setMode(e.target.value)}><option>In person</option><option>Teams video</option>{type === 'consultation' && <option>Phone</option>}</select></label>
+          {type === 'signing' && two && (
+            <label className="field"><span>Meeting</span><select className="select" value={which} onChange={(e) => { setWhich(e.target.value); setPick(null) }}><option value="mortgage" disabled={!!file.mortgageBooking}>1 · Mortgage signing</option><option value="main" disabled={!!file.booking}>2 · Sale signing (with seller)</option></select></label>
+          )}
           {type === 'signing' && file && !bookingUnlocked(file) && <p className="banner warn small">Preconditions not met yet (signed contract + bank instructions). You can still book manually.</p>}
           {mode === 'Teams video' && <p className="small muted row" style={{ gap: 4 }}><Video size={14} /> A Teams link is created automatically.</p>}
         </div>

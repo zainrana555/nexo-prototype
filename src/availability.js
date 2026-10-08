@@ -26,11 +26,13 @@ export function outlookBusy(person, date) {
 
 // Every appointment Nexo itself knows about (file signings + calendar events), normalised.
 export function appointments(state) {
-  const fromFiles = state.files.filter((f) => f.booking).map((f) => ({
-    id: 'sign-' + f.id, kind: 'signing', title: `Signing – ${f.clients.join(' & ')}`, date: f.booking.date, time: f.booking.time,
-    duration: DURATION.signing, mode: f.booking.mode, who: f.booking.notary ?? f.notary, fileId: f.id,
-    attendees: f.booking.attendees ?? f.parties.map((p) => p.name), teamsUrl: f.booking.teamsUrl, bookedBy: f.booking.bookedBy, isDemo: f.isDemo,
-  }))
+  const meeting = (f, b, which) => ({
+    id: (which === 'mortgage' ? 'mort-' : 'sign-') + f.id, kind: 'signing', which,
+    title: `${which === 'mortgage' ? 'Mortgage signing' : f.mortgageBooking || f.type === 'Purchase' ? 'Sale signing' : 'Signing'} – ${f.clients.join(' & ')}`, date: b.date, time: b.time,
+    duration: DURATION.signing, mode: b.mode, who: b.notary ?? f.notary, fileId: f.id,
+    attendees: b.attendees ?? f.parties.map((p) => p.name), teamsUrl: b.teamsUrl, bookedBy: b.bookedBy, isDemo: f.isDemo,
+  })
+  const fromFiles = state.files.flatMap((f) => [f.mortgageBooking && meeting(f, f.mortgageBooking, 'mortgage'), f.booking && meeting(f, f.booking, 'main')].filter(Boolean))
   const events = state.events.filter((e) => e.status !== 'cancelled').map((e) => ({ duration: 60, kind: 'internal', attendees: [], ...e }))
   return [...fromFiles, ...events]
 }
@@ -97,4 +99,4 @@ export function downloadIcs({ title, date, time, duration = 60, location = '', d
   URL.revokeObjectURL(a.href)
 }
 
-export const OFFICE_ADDRESS = '1000 rue Exemple, bureau 200, Montréal'
+export const OFFICE_ADDRESS = '700 Av. Sainte-Croix, Saint-Laurent (Québec) H4L 3Y3'

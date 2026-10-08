@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Mail, Phone, Globe, Users, Send, FolderOpen, Columns3, List, MessageSquare, X, RotateCcw, Bot, CalendarDays, Video } from 'lucide-react'
+import { Mail, Phone, Globe, Users, Send, FolderOpen, Columns3, List, MessageSquare, X, RotateCcw, Bot, CalendarDays, Video, Paperclip } from 'lucide-react'
 import { BookModal } from './Calendar'
 import { useStore, now } from '../../store'
 import { PageHeader, Badge, Modal, Avatar, Tabs } from '../../ui'
 import { LEAD_COLUMNS, addDays } from '../../data'
-import { computeFees, defaultFeeSelection, money, fmtDate } from '../../logic'
+import { money, fmtDate } from '../../logic'
+import { matchBase, PROPERTY_TYPES, LENDER_TYPES, GUIDES } from '../../firm'
 import { Composer, composerFields } from '../../Shared'
 
-const SOURCE_ICON = { Email: Mail, 'Website form': Globe, 'Broker referral': Users, Phone, 'AI phone agent': Bot }
+const SOURCE_ICON = { Email: Mail, 'Website form': Globe, 'Broker referral': Users, 'Broker email': Users, Phone, 'AI phone agent': Bot }
 
 export default function Leads() {
   const { state } = useStore()
@@ -46,7 +47,7 @@ export default function Leads() {
                   return (
                     <Link key={l.id} to={`/app/leads/${l.id}`} draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', l.id); e.dataTransfer.effectAllowed = 'move' }} className={'lead-card' + (l.isDemo && l.status === 'New' ? ' pulse' : '')}>
                       <div className="row between"><b>{l.name}</b><span className="small muted">{l.received}</span></div>
-                      <span className="small muted">{l.type} · {l.property.split(',').pop()}{l.clientType === 'Corporation' && <> · <Badge tone="purple">Corporation</Badge></>}</span>
+                      <span className="small muted">{(l.service ?? 'Real estate') === 'Real estate' ? `${l.type}${l.propertyType ? ` · ${l.propertyType}` : ''}` : l.service} · {l.property.split(',').pop()}{l.clientType === 'Corporation' && <> · <Badge tone="purple">Corporation</Badge></>}{l.linkedTo && <> · <Badge tone="blue">Linked</Badge></>}</span>
                       <div className="row between">
                         <span className="small muted row" style={{ gap: 4 }}><Icon size={13} /> {l.source}</span>
                         {l.quote ? <span className="small mono">{money(l.quote)}</span> : <Badge tone="blue">{l.lang}</Badge>}
@@ -168,7 +169,21 @@ export function LeadDetail() {
                   <Avatar name={lead.name} />
                   <div className="grow"><b>{lead.name}</b> <span className="small muted">&lt;{lead.email}&gt;</span><div className="small muted">{lead.received} · via {lead.source}</div></div>
                 </div>
+                {lead.formNo && (
+                  <div className="form-fields">
+                    <span className="small muted">Website form “Request a Consultation” · New Form # {lead.formNo}</span>
+                    {[['Prénom / Nom', lead.name], ['Courriel', lead.email], ['Téléphone', lead.phone], ['Sujet', lead.subject]].map(([k, v]) => <div key={k} className="kv small"><span className="muted">{k}</span><span>{v}</span></div>)}
+                  </div>
+                )}
+                {!lead.formNo && lead.subject && <p className="small"><b>Subject:</b> {lead.subject}</p>}
                 <p style={{ whiteSpace: 'pre-line', marginTop: 14, lineHeight: 1.6 }}>{lead.message || '—'}</p>
+                <div className="ai-extract">
+                  <span className="small"><b>Nexo read:</b></span>
+                  <Badge tone="navy">{lead.service ?? 'Real estate'}</Badge>
+                  {(lead.service ?? 'Real estate') === 'Real estate' && <><Badge>{lead.type}</Badge><Badge>{lead.propertyType ?? 'Condo'}</Badge><Badge>{lead.lenderType ?? 'Conventional'}</Badge></>}
+                  {lead.closingDate && <Badge>Signing ≈ {fmtDate(lead.closingDate)}</Badge>}
+                  <Badge tone="blue">{lead.lang}</Badge>
+                </div>
               </div>
             ) : (
               <div className="timeline">{lead.log.map((l, i) => <div key={i}><span className="small muted">{l.t} · {l.who}</span><div>{l.e}</div></div>)}</div>
@@ -235,54 +250,82 @@ function LostModal({ onClose, onSave }) {
   )
 }
 
+const TEMPLATE_OF = (lead) => {
+  if (lead.service === 'Wills & mandates') return 'Mini-mandate · Wills & mandates'
+  if (lead.service === 'Homologation') return 'Mini-mandate · Homologation'
+  if (lead.service === 'Will search' || lead.service === 'Successions') return 'Mini-mandate · Will search'
+  if (lead.clientType === 'Corporation') return 'Mini-mandate · Corporation'
+  return `Mini-mandate · ${lead.type === 'Refinance' ? 'Refinance' : lead.type === 'Sale' ? 'Seller' : 'Buyer'}`
+}
+
 function MandateModal({ lead, onClose }) {
   const { state, dispatch, notify } = useStore()
   const [lang, setLang] = useState(lead.lang)
-  const corp = lead.clientType === 'Corporation'
-  const ruleOn = (id) => state.feeRules.find((r) => r.id === id)?.on
-  const [sel, setSel] = useState(() => defaultFeeSelection(lead.type, state.feeItems, { corporate: corp && ruleOn('r1') }))
-  const bases = state.feeItems.filter((i) => i.kind === 'base' && i.type === lead.type)
-  const fees = computeFees(sel, state.feeItems)
-  const setQty = (id, v) => setSel({ ...sel, qty: { ...sel.qty, [id]: Math.max(0, Number(v) || 0) } })
-  const tpl = state.templates.find((t) => t.name === (corp ? 'Mini-mandate · Corporation' : `Mini-mandate · ${lead.type === 'Refinance' ? 'Refinance' : lead.type === 'Sale' ? 'Seller' : 'Buyer'}`))
+  const [l, setL] = useState({ propertyType: lead.propertyType ?? 'Condo', lenderType: lead.lenderType ?? 'Conventional' })
+  const realEstate = (lead.service ?? 'Real estate') === 'Real estate'
+  const [base, setBase] = useState(() => matchBase(state.feeItems, { ...lead, ...l }))
+  const [extras, setExtras] = useState({ 'o-rush': 0, 'o-resolution': lead.clientType === 'Corporation' ? 1 : 0 })
+  const [seller, setSeller] = useState({ name: '', email: '' })
+  const item = state.feeItems.find((i) => i.id === base)
+  const approx = Number(item?.amount ?? 0) + state.feeItems.filter((i) => extras[i.id]).reduce((n, i) => n + Number(i.amount), 0)
+  const tpl = state.templates.find((t) => t.name === TEMPLATE_OF(lead))
   const addr = lead.property.split(',')[0]
+  const guide = lead.type === 'Sale' ? GUIDES.seller : GUIDES.buyer
   const fill = (txt) => (txt ?? '')
     .replaceAll('{{client}}', lead.name.split(' ')[0]).replaceAll('{{adresse}}', addr).replaceAll('{{address}}', addr)
-    .replaceAll('{{total}}', money(fees.total, lang))
-    .replaceAll('{{lien}}', '[Accepter et ouvrir mon dossier]').replaceAll('{{link}}', '[Accept and open my file]')
-    .replaceAll('{{signature}}', 'Nathalie Roy, parajuriste · Étude Dubois Notaires')
+    .replaceAll('{{total}}', money(approx, lang))
+    .replaceAll('{{signature}}', 'Nathalie Roy, parajuriste · Acoca Notaires\n700 Av. Sainte-Croix, Saint-Laurent · 514 748-6539')
+  const pickType = (k, v) => { const nl = { ...l, [k]: v }; setL(nl); setBase(matchBase(state.feeItems, { ...lead, ...nl })) }
+  const send = () => {
+    dispatch({ type: 'lead/mandate', id: lead.id, lang, total: approx, totalLabel: `≈ ${money(approx)} ++` })
+    if (seller.name && seller.email) dispatch({ type: 'lead/linkSeller', id: lead.id, seller })
+    notify(`Mini-mandate sent to ${lead.name}${seller.name ? ` · seller lead created for ${seller.name}` : ''}`)
+    onClose()
+  }
 
   return (
     <Modal title="Send mini-mandate" onClose={onClose} wide>
       <div className="split" style={{ gap: 16 }}>
-        <div className="side stack" style={{ flexBasis: 280 }}>
-          <label className="field"><span>Published price ({lead.type})</span>
-            <select className="select" value={sel.base} onChange={(e) => setSel({ ...sel, base: e.target.value })}>{bases.map((b) => <option key={b.id} value={b.id}>{b.label} · {money(b.amount)}</option>)}</select>
+        <div className="side stack" style={{ flexBasis: 290 }}>
+          {realEstate && (
+            <div className="grid-2">
+              <label className="field"><span>Property</span><select className="select" value={l.propertyType} onChange={(e) => pickType('propertyType', e.target.value)}>{PROPERTY_TYPES.map((p) => <option key={p}>{p}</option>)}</select></label>
+              <label className="field"><span>Lender</span><select className="select" value={l.lenderType} onChange={(e) => pickType('lenderType', e.target.value)}>{LENDER_TYPES.map((p) => <option key={p}>{p}</option>)}</select></label>
+            </div>
+          )}
+          <label className="field"><span>Published price</span>
+            <select className="select" value={base} onChange={(e) => setBase(e.target.value)}>
+              {[...new Set(state.feeItems.filter((i) => i.kind === 'base').map((i) => i.category))].map((c) => <optgroup key={c} label={c}>{state.feeItems.filter((i) => i.kind === 'base' && i.category === c).map((b) => <option key={b.id} value={b.id}>{b.label} · {money(b.amount)}</option>)}</optgroup>)}
+            </select>
           </label>
-          {state.feeItems.filter((i) => i.kind === 'unit').map((i) => (
-            <label key={i.id} className="row small" style={{ justifyContent: 'space-between' }}>{i.label}<input className="input" type="number" min="0" max="9" style={{ width: 70, minHeight: 32 }} value={sel.qty[i.id] ?? 0} onChange={(e) => setQty(i.id, e.target.value)} /></label>
-          ))}
-          {state.feeItems.filter((i) => i.kind === 'option').map((i) => (
-            <label key={i.id} className="check small" style={{ minHeight: 30 }}><input type="checkbox" checked={(sel.qty[i.id] ?? 0) > 0} onChange={(e) => setQty(i.id, e.target.checked ? 1 : 0)} /> {i.label}</label>
-          ))}
+          {['o-rush', 'o-resolution'].map((id) => { const it = state.feeItems.find((i) => i.id === id); return it && <label key={id} className="check small" style={{ minHeight: 28 }}><input type="checkbox" checked={!!extras[id]} onChange={(e) => setExtras({ ...extras, [id]: e.target.checked ? 1 : 0 })} /> {it.label} · {money(it.amount)}</label> })}
           <div className="quote-box">
-            <span className="small muted">Quote (taxes + disbursements incl.)</span>
-            <b style={{ fontSize: 22 }}>{money(fees.total)}</b>
-            <span className="small muted">{fees.deposit ? 'Private lender: deposit required · ' : ''}From Settings → Fee table</span>
+            <span className="small muted">Approximate fees (as in the firm’s emails)</span>
+            <b style={{ fontSize: 22 }}>≈ {money(approx)} ++</b>
+            <span className="small muted">++ = plus taxes and disbursements · detailed in the service contract{item?.deposit ? ' · deposit required' : ''}</span>
           </div>
+          {realEstate && lead.type !== 'Sale' && (
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="small muted">Seller’s contacts (optional): Nexo opens a linked seller lead so they get their own quote</span>
+              <input className="input" placeholder="Seller name" value={seller.name} onChange={(e) => setSeller({ ...seller, name: e.target.value })} aria-label="Seller name" />
+              <input className="input" placeholder="Seller email" value={seller.email} onChange={(e) => setSeller({ ...seller, email: e.target.value })} aria-label="Seller email" />
+            </div>
+          )}
         </div>
         <div className="main stack">
           <div className="row between">
-            <span className="small muted">To: <b>{lead.name}</b> &lt;{lead.email}&gt;{corp && <Badge tone="purple">Corporation</Badge>}</span>
+            <span className="small muted">To: <b>{lead.name}</b> &lt;{lead.email}&gt;{lead.clientType === 'Corporation' && <> <Badge tone="purple">Corporation</Badge></>}</span>
             <div className="seg light"><button className={lang === 'FR' ? 'on' : ''} onClick={() => setLang('FR')}>FR</button><button className={lang === 'EN' ? 'on' : ''} onClick={() => setLang('EN')}>EN</button></div>
           </div>
           <div className="small"><b>Subject:</b> {fill(tpl?.subject[lang])}</div>
+          {realEstate && <div className="attach-chip"><Paperclip size={13} /> {guide.title[lang === 'FR' ? 'fr' : 'en']}.pdf</div>}
           <pre className="email-preview">{fill(tpl?.body[lang])}</pre>
+          <p className="small muted">The client accepts with one click instead of replying by email; the file then opens automatically.</p>
         </div>
       </div>
       <div className="row" style={{ justifyContent: 'flex-end' }}>
         <button className="btn" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary" onClick={() => { dispatch({ type: 'lead/mandate', id: lead.id, lang, total: fees.total, totalLabel: money(fees.total) }); notify(`Mini-mandate sent to ${lead.name}`); onClose() }}><Send size={16} /> Send email</button>
+        <button className="btn btn-primary" onClick={send}><Send size={16} /> Send email</button>
       </div>
     </Modal>
   )

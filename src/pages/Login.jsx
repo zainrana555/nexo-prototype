@@ -50,7 +50,7 @@ export default function Login() {
           <form className="login-form stack" onSubmit={signIn}>
             <div>
               <h2 style={{ fontSize: 24 }}>Sign in</h2>
-              <p className="muted">Étude Dubois Notaires · staff workspace</p>
+              <p className="muted">Acoca Notaires · staff workspace</p>
             </div>
             <button type="button" className="btn btn-block ms-btn" onClick={signIn}>
               <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022" /><rect x="11" y="1" width="9" height="9" fill="#7fba00" /><rect x="1" y="11" width="9" height="9" fill="#00a4ef" /><rect x="11" y="11" width="9" height="9" fill="#ffb900" /></svg>
@@ -73,6 +73,7 @@ export default function Login() {
               <span>Are you a client?</span>
               <Link to="/client">Open your client space →</Link>
             </div>
+            <p className="small muted" style={{ textAlign: 'center' }}>New notary firm? <Link to="/signup-firm">Create your workspace</Link></p>
           </form>
         </section>
       </div>

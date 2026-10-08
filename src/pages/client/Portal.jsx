@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Download, FileText } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../i18n'
@@ -15,6 +16,7 @@ function downloadSample(name) {
 
 export default function Portal() {
   const { state, dispatch, notify } = useStore()
+  const nav = useNavigate()
   const L = state.lang
   const file = state.files.find((f) => f.id === DEMO_FILE)
   const [phase, setPhase] = useState('email')
@@ -30,6 +32,7 @@ export default function Portal() {
             <p className="muted" style={{ fontSize: 14 }}>{t(L, 'portalLogin')}</p>
             <label className="field"><span>{t(L, 'email')}</span><input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
             <button className="btn btn-primary btn-block">{t(L, 'sendCode')}</button>
+            <button type="button" className="link-btn" onClick={() => nav('/client/signup')}>{t(L, 'suTitle')}</button>
           </form>
         ) : (
           <form className="stack" onSubmit={(e) => { e.preventDefault(); setPhase('docs') }}>

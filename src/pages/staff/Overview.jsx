@@ -17,7 +17,7 @@ export default function Overview() {
   const tasks = active.map((f) => ({ f, s: stageInfo(f) })).filter(({ f, s }) => s.owner === 'Staff' && (scope === 'all' || mine(f)))
   const waitingClient = active.filter((f) => stageInfo(f).owner === 'Client').length
   const signings = [
-    ...state.files.filter((f) => f.booking && f.booking.date >= new Date().toISOString().slice(0, 10)).map((f) => ({ title: `Signing – ${f.clients.join(' & ')}`, date: f.booking.date, time: f.booking.time, mode: f.booking.mode, to: `/app/files/${f.id}` })),
+    ...state.files.flatMap((f) => [[f.mortgageBooking, 'Mortgage signing'], [f.booking, f.mortgageBooking ? 'Sale signing' : 'Signing']].filter(([b]) => b && b.date >= new Date().toISOString().slice(0, 10)).map(([b, l]) => ({ title: `${l} – ${f.clients.join(' & ')}`, date: b.date, time: b.time, mode: b.mode, to: `/app/files/${f.id}` }))),
     ...state.events.map((e) => ({ title: e.title, date: e.date, time: e.time, mode: e.mode, to: e.fileId ? `/app/files/${e.fileId}` : '/app/calendar' })),
   ].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 5)
   const activity = state.files.flatMap((f) => f.log.slice(0, 2).map((l) => ({ ...l, f })))

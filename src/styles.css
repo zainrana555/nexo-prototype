@@ -493,3 +493,65 @@ tbody tr.highlight td:first-child { box-shadow: inset 3px 0 0 var(--navy); }
 .capture-thumb { width: 120px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
 details.answers { border-top: 1px solid var(--line-soft); padding-top: 8px; }
 details.answers summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--navy); margin-bottom: 6px; }
+
+/* ---- Firm documents round (Acoca) ---- */
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 700px) { .grid-3 { grid-template-columns: 1fr; } }
+.meet-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+.funds-steps { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.funds-steps span.ok { color: var(--ok); }
+.yn { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line-soft); font-size: 13px; }
+.dr { display: inline-flex; gap: 2px; }
+.dr span { width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; font-size: 10px; font-weight: 600; background: var(--ground); color: var(--muted); border: 1px solid var(--line); }
+.dr span.on { background: var(--ok-tint); color: var(--ok); border-color: #b9dfc5; }
+.check-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.check-table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 8px 10px; background: var(--navy-tint-2); border-bottom: 1px solid var(--line); }
+.check-table td { padding: 6px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.check-table td:first-child .badge, .check-table td:first-child .auto-tag { margin-left: 6px; vertical-align: 1px; }
+.check-table .c { text-align: center; width: 84px; }
+.check-table input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--navy); }
+.check-table tr.done td:first-child { color: var(--muted); }
+.check-table tr.dd td:first-child { font-weight: 500; }
+.auto-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--purple); background: var(--purple-tint); border-radius: 999px; padding: 1px 7px; }
+.note-input { width: 100%; min-width: 90px; border: 0; border-bottom: 1px solid transparent; background: transparent; font: inherit; font-size: 12px; padding: 3px 0; }
+.note-input:hover, .note-input:focus { border-bottom-color: var(--input-line); outline: none; }
+.procedure summary { cursor: pointer; font-weight: 600; }
+.procedure ol { margin: 10px 0 0; padding-left: 20px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+.form-fields { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--navy-tint-2); display: flex; flex-direction: column; gap: 4px; }
+.ai-extract { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.attach-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; color: var(--navy); }
+.attach-chip.as-link { cursor: pointer; }
+.attach-chip.as-link:hover { background: var(--navy-tint-2); border-color: var(--navy); }
+.fraud-note { font-size: 12px; color: var(--bad); background: var(--bad-tint); border-radius: 8px; padding: 8px 10px; margin: 0; }
+.contract-paper.cs { font-family: var(--serif); font-size: 13px; line-height: 1.55; }
+.cs-head { text-align: center; display: flex; flex-direction: column; gap: 1px; font-size: 11px; color: var(--muted); border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.cs-head b { font-size: 15px; color: var(--ink); letter-spacing: 0.04em; }
+.cs-list { margin: 4px 0 8px; padding-left: 22px; }
+.cs-clauses { font-size: 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.disb-line { gap: 8px; }
+.tax-tag { font-size: 10px; font-weight: 600; border-radius: 4px; padding: 0 5px; background: var(--ok-tint); color: var(--ok); }
+.tax-tag.nt { background: var(--ground); color: var(--muted); }
+.fct-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 600px) { .fct-grid { grid-template-columns: 1fr; } }
+.fct-row { display: flex; flex-direction: column; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.fct-row span { font-size: 11px; color: var(--muted); }
+.fct-row.missing { border-color: var(--warn-line); background: var(--warn-tint); }
+.fct-row.missing b { color: var(--warn); }
+.perm-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+@media (max-width: 600px) { .perm-pick { grid-template-columns: 1fr; } }
+.appt-card.pending { border-style: dashed; border-color: var(--line); background: var(--card); }
+.step-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 12px; border-radius: 999px; background: var(--navy-tint); color: var(--navy-dark); align-self: flex-start; flex-wrap: wrap; }
+.check-line { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; cursor: pointer; }
+.check-line input { width: 18px; height: 18px; accent-color: var(--navy); flex: none; margin-top: 1px; }
+.guide-sec { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.guide-sec p { margin: 6px 0 0; font-size: 14px; color: var(--ink); }
+.guide-sec.alert { border-color: #f1b8b2; background: var(--bad-tint); }
+.guide-sec.alert b { color: var(--bad); }
+.faq { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.faq summary { cursor: pointer; font-weight: 500; }
+.faq p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.proto-note { font-size: 12px; color: var(--purple); background: var(--purple-tint); border-radius: 8px; padding: 8px 10px; }
+.firm-signup { padding: 32px 24px; display: flex; flex-direction: column; gap: 20px; max-width: 760px; margin: 0 auto; width: 100%; }
+@media (max-width: 600px) { .firm-signup { padding: 20px 16px; } }
+.step.on { color: var(--navy-dark); border-color: var(--navy); }
+.step.on span { background: var(--navy); color: #fff; }

@@ -41,9 +41,10 @@ export default function Intake() {
     name: 'Émilie Gagnon', email: lead?.email ?? '', phone: lead?.phone ?? '', address: '220 rue Exemple, app. 4, Montréal', dob: '1991-03-14',
     coName: 'Gestion Immobilière Exemple inc.', neq: '1170000000', officer: 'Simon Paquette', officerTitle: 'Président',
     marital: 0, spouse: '', coParty: false,
-    propAddr: lead?.property ?? '', closing: file?.closingDate ?? '', lender: 'Banque Exemple', sellerName: 'Gestion Immo Exemple inc.',
+    propAddr: lead?.property ?? '', closing: file?.closingDate ?? '', lender: 'Banque Exemple', sellerName: 'Martin Lavoie',
     currentLender: 'Caisse Exemple', currentAccount: '', insurer: 'Assurances Exemple', policy: '', insBank: false,
     mortgages: [{ lender: 'Banque Exemple', account: '' }], rented: false, captures: [],
+    broker: true, syndicate: '', sellerContact: '', sellerEmail: '', fundsOrigin: 0, thirdParty: false, abroad: false, unequal: false, propKind: 0, newAddress: '',
     ids: [], signMode: 'remote', face: 'idle', faceConsent: false, consent: false,
   })
   const set = useCallback((k, v) => setD((x) => ({ ...x, [k]: v })), [])
@@ -84,10 +85,13 @@ export default function Intake() {
           property: d.propAddr,
           ...(role === 'seller' ? { mortgagesToDischarge: d.mortgages.filter((m) => m.lender), rented: d.rented, utilityCaptures: d.captures.length } : {}),
           ...(role === 'borrower' ? { currentLender: `${d.currentLender} ${d.currentAccount}`.trim() } : {}),
-          ...(role === 'buyer' ? { lender: d.lender, seller: d.sellerName } : {}),
+          ...(role === 'buyer' ? { lender: d.lender, seller: d.sellerName, broker: d.broker, syndicate: d.syndicate || null } : {}),
+          ...(role === 'seller' ? { propertyKind: t('en', 'propKinds')[d.propKind], newAddress: d.newAddress || null } : {}),
         },
       },
     })
+    if (role === 'buyer') dispatch({ type: 'funds/source', id: DEMO_FILE, source: { origin: t('en', 'fundsOpts')[d.fundsOrigin], thirdParty: d.thirdParty, abroad: d.abroad, unequal: d.unequal } })
+    if (role === 'buyer' && d.sellerName && d.sellerEmail.includes('@')) dispatch({ type: 'lead/linkSeller', id: DEMO_FILE, seller: { name: d.sellerName, email: d.sellerEmail } })
     notify(L === 'fr' ? 'Envoyé à l’étude' : 'Sent to the office')
     setDone(true)
   }
@@ -162,6 +166,13 @@ export default function Intake() {
             <div className="stack">
               <label className="field"><span>{t(L, 'marital')}</span><select className="select" value={d.marital} onChange={(e) => set('marital', +e.target.value)}>{t(L, 'maritalOpts').map((o, i) => <option key={o} value={i}>{o}</option>)}</select></label>
               {WITH_SPOUSE.includes(d.marital) && <Field label={t(L, 'spouse')} value={d.spouse} on={(v) => set('spouse', v)} />}
+              {d.marital !== 0 && d.marital !== 5 && (
+                <div className="ins-box stack" style={{ gap: 6 }}>
+                  <b>{t(L, 'civilDocs')}</b>
+                  <span className="small muted">{t(L, 'civilDocsHint')}</span>
+                  <Upload label={[null, 'Certificat de mariage / Marriage certificate', 'Contrat de mariage / Marriage contract', 'Contrat de mariage / Marriage contract', 'Certificat d’union civile / Civil union certificate', null, 'Jugement de séparation / Separation judgment', 'Jugement de divorce / Divorce judgment', 'Certificat de décès / Death certificate'][d.marital]} />
+                </div>
+              )}
               {role === 'buyer' && (
                 <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
                   <legend className="small muted" style={{ marginBottom: 6 }}>{t(L, 'coParty')}</legend>
@@ -190,11 +201,35 @@ export default function Intake() {
               <Field label={t(L, 'closingDate')} type="date" value={d.closing} on={(v) => set('closing', v)} />
               {role === 'buyer' && (
                 <>
-                  <div className="grid-2">
-                    <Field label={t(L, 'lender')} value={d.lender} on={(v) => set('lender', v)} />
-                    <Field label={t(L, 'sellerName')} value={d.sellerName} on={(v) => set('sellerName', v)} />
+                  <Field label={t(L, 'lender')} value={d.lender} on={(v) => set('lender', v)} />
+                  <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
+                    <legend className="small muted" style={{ marginBottom: 6 }}>{t(L, 'hasBroker')}</legend>
+                    <div className="grid-2">
+                      <button type="button" className={'pill-btn' + (d.broker ? ' on' : '')} onClick={() => set('broker', true)}>{t(L, 'yes')}</button>
+                      <button type="button" className={'pill-btn' + (!d.broker ? ' on' : '')} onClick={() => set('broker', false)}>{t(L, 'no')}</button>
+                    </div>
+                  </fieldset>
+                  {d.broker ? <p className="small muted">{t(L, 'brokerYes')}</p> : (
+                    <>
+                      <Upload label={t(L, 'offer')} />
+                      <Upload label={t(L, 'colCert')} />
+                      <Field label={t(L, 'syndicate')} value={d.syndicate} on={(v) => set('syndicate', v)} />
+                    </>
+                  )}
+                  <div className="ins-box stack" style={{ gap: 8 }}>
+                    <b>{t(L, 'sellerContacts')}</b>
+                    <div className="grid-2">
+                      <Field label={t(L, 'sellerName')} value={d.sellerName} on={(v) => set('sellerName', v)} />
+                      <Field label={t(L, 'sellerEmail')} type="email" value={d.sellerEmail} on={(v) => set('sellerEmail', v)} />
+                    </div>
                   </div>
-                  <Upload label={t(L, 'offer')} />
+                  <div className="ins-box stack" style={{ gap: 8 }}>
+                    <b>{t(L, 'fundsTitle')}</b>
+                    <label className="field"><span>{t(L, 'fundsOrigin')}</span><select className="select" value={d.fundsOrigin} onChange={(e) => set('fundsOrigin', +e.target.value)}>{t(L, 'fundsOpts').map((o, i) => <option key={o} value={i}>{o}</option>)}</select></label>
+                    <label className="check small"><input type="checkbox" checked={d.thirdParty} onChange={(e) => set('thirdParty', e.target.checked)} /> {t(L, 'thirdParty')}</label>
+                    <label className="check small"><input type="checkbox" checked={d.abroad} onChange={(e) => set('abroad', e.target.checked)} /> {t(L, 'abroad')}</label>
+                    {d.coParty && <label className="check small"><input type="checkbox" checked={d.unequal} onChange={(e) => set('unequal', e.target.checked)} /> {t(L, 'unequal')}</label>}
+                  </div>
                 </>
               )}
               {role === 'borrower' && (
@@ -206,6 +241,10 @@ export default function Intake() {
               )}
               {role === 'seller' && (
                 <>
+                  <label className="field"><span>{t(L, 'propKind')}</span><select className="select" value={d.propKind} onChange={(e) => { set('propKind', +e.target.value); set('rented', [1, 2].includes(+e.target.value)) }}>{t(L, 'propKinds').map((o, i) => <option key={o} value={i}>{o}</option>)}</select></label>
+                  <Field label={t(L, 'newAddress')} value={d.newAddress} on={(v) => set('newAddress', v)} />
+                  {d.propKind <= 1 && <Field label={t(L, 'syndicate')} value={d.syndicate} on={(v) => set('syndicate', v)} />}
+                  <Upload label={t(L, 'titles')} />
                   <div className="ins-box stack" style={{ gap: 8 }}>
                     <b>{t(L, 'existingMortgages')}</b>
                     <span className="small muted">{t(L, 'emNote')}</span>
@@ -344,6 +383,7 @@ function StepIds({ L, d, set, validIds, corp }) {
         <button className="choice dashed" onClick={() => setAdding(true)}>{t(L, 'addId')}</button>
       )}
       <p className={'banner ' + (validIds >= 2 ? 'ok' : 'warn')}>{validIds >= 2 ? t(L, 'haveTwo') : t(L, 'needTwo', { n: 2 - validIds })}</p>
+      <Upload label={t(L, 'passportCopy')} />
     </>
   )
 }

@@ -37,7 +37,7 @@ export default function Sign() {
         </div>
         <div className="doc-preview">
           <b style={{ textAlign: 'center', display: 'block' }}>{fr ? 'CONVENTION DE SERVICES PROFESSIONNELS' : 'PROFESSIONAL SERVICES AGREEMENT'}</b>
-          <p>{fr ? 'Entre Étude Dubois Notaires inc. et ' : 'Between Étude Dubois Notaires inc. and '}<b>{party}</b>{fr ? ', pour l’achat de l’immeuble situé au ' : ', for the purchase of the property at '}{file.addr}, {file.city}.</p>
+          <p>{fr ? 'Entre Acoca Notaires inc. et ' : 'Between Acoca Notaires inc. and '}<b>{party}</b>{fr ? ', pour l’achat de l’immeuble situé au ' : ', for the purchase of the property at '}{file.addr}, {file.city}.</p>
           <p>{fr ? 'Le notaire s’engage à effectuer la vérification des titres, préparer et recevoir l’acte de vente et l’acte d’hypothèque, et remettre les documents finaux.' : 'The notary will perform the title search, prepare and execute the deed of sale and mortgage, and deliver the final documents.'}</p>
           <p>{fr ? 'Honoraires payables par virement ou traite bancaire avant la signature.' : 'Fees payable by wire transfer or bank draft before signing.'}</p>
           <div className="ghost-line" style={{ width: '90%' }} /><div className="ghost-line" style={{ width: '75%' }} />

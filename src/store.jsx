@@ -1,13 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react'
 import {
   INITIAL_FILES, INITIAL_LEADS, INITIAL_RULES, INITIAL_TEMPLATES, INITIAL_EVENTS, INITIAL_FAXES,
-  INITIAL_FEE_ITEMS, INITIAL_FEE_RULES, INITIAL_ROLE_PERMS, ROLES,
+  INITIAL_FEE_ITEMS, INITIAL_FEE_RULES, INITIAL_ROLE_PERMS, ROLES, STAFF,
   DEMO_FILE, FINAL_DOCS, addDays,
 } from './data'
 import { bookingUnlocked, validIds } from './logic'
 import { suggestSlots, DURATION } from './availability'
+import { fileType } from './firm'
 
-const KEY = 'nexo-demo-v4'
+const KEY = 'nexo-demo-v5'
 
 const initial = () => ({
   auth: null,
@@ -18,6 +19,10 @@ const initial = () => ({
   feeItems: INITIAL_FEE_ITEMS,
   feeRules: INITIAL_FEE_RULES,
   rolePerms: INITIAL_ROLE_PERMS,
+  roles: ROLES,
+  users: STAFF.map((u) => ({ ...u, status: 'Active' })),
+  clientAccount: null,
+  firms: [{ name: 'Acoca Notaires inc.', workspace: 'acoca-notaires', plan: 'Firm', users: 10 }],
   faxes: INITIAL_FAXES,
   templates: INITIAL_TEMPLATES.map((t) => ({ recipients: 'Client', access: ROLES, ...t })),
   events: INITIAL_EVENTS,
@@ -57,18 +62,23 @@ function sendBookingOptions(s, f, by) {
   const notary = f.notary
   const slots = suggestSlots(s, notary, DURATION.signing, 3, 'sign-' + f.id)
   let n = mapFile(s, f.id, (x) => log({ ...x, bookingLinkSent: true }, `${by === 'System' ? 'Automation: ' : ''}booking email sent with 3 proposed times (${slots.map((t) => `${t.date} ${t.time}`).join(', ')})`, by))
-  if (f.isDemo) n = email(n, 'booking', { slots, with: notary })
+  if (f.isDemo) n = email(n, 'booking', { slots, with: notary, two: !!fileType(f.type).twoMeetings })
   return n
 }
 
+const TYPE_OF_SERVICE = { 'Wills & mandates': 'Wills & mandates', Successions: 'Succession', 'Will search': 'Succession', Homologation: 'Succession' }
+const meetingName = (f, which) => (which === 'mortgage' ? 'Mortgage signing' : fileType(f.type).twoMeetings ? 'Sale signing' : 'Signing')
+
 function fileFromLead(lead, id) {
+  const type = TYPE_OF_SERVICE[lead.service] ?? (lead.lenderType === 'No mortgage' && lead.type === 'Purchase' ? 'Cash purchase' : lead.type)
   return {
-    id, isDemo: !!lead.isDemo, fromLead: lead.id, clientType: lead.clientType ?? 'Individual',
-    clients: [lead.name], type: lead.type, addr: lead.property.split(',').slice(0, -1).join(',') || lead.property,
+    id, isDemo: !!lead.isDemo, fromLead: lead.id, clientType: lead.clientType ?? 'Individual', propertyType: lead.propertyType ?? 'Condo', lenderType: lead.lenderType ?? 'Conventional',
+    checklist: {}, sheet: { mode: 'En ligne', opened: new Date().toISOString().slice(0, 10) }, tracker: {}, mortgageBooking: null,
+    clients: [lead.name], type, addr: lead.property.split(',').slice(0, -1).join(',') || lead.property,
     city: lead.property.split(',').pop().trim(), lang: lead.lang, notary: 'Me Anne Dubois', paralegal: 'Nathalie Roy',
     lender: '—', closingDate: lead.closingDate ?? addDays(30),
     contract: { sent: false, signed: false, total: lead.quote ?? 0, lang: lead.lang },
-    bankReceived: false, title: { deeds10: false, chain30: false, cadastre: false, index: false, bankruptcy: false, municipalTax: false, schoolTax: false }, funds: { requested: false, received: false }, booking: null,
+    bankReceived: false, funds: { requested: false, received: false }, booking: null,
     closing: { consigno: false, lenderReport: false }, finalDocs: [], docsPublished: false, portalViewed: false,
     procardex: false, escalated: false, reminders: 0,
     parties: [{ name: lead.name, corporate: lead.clientType === 'Corporation', role: lead.type === 'Sale' ? 'Seller' : lead.type === 'Refinance' ? 'Borrower' : 'Buyer', email: lead.email, phone: lead.phone, marital: '—', ids: [], liveness: 'Not started', questionnaire: 0 }],
@@ -107,6 +117,20 @@ function reducer(s, a) {
       return notify(n, `${lead.name} accepted the mini-mandate · file ${file.id} opened`, `/app/files/${file.id}`)
     }
     case 'lead/add': return { ...s, leads: [a.lead, ...s.leads] }
+    // The buyer gave us the seller's contacts: open a linked lead so the seller gets their own quote.
+    case 'lead/linkSeller': {
+      const src = s.leads.find((l) => l.id === a.id) ?? s.files.find((f) => f.id === a.id)
+      const id = 'L-' + (1050 + s.leads.length)
+      const lead = { id, name: a.seller.name, email: a.seller.email, phone: a.seller.phone ?? '', source: `From buyer file ${a.id}`, service: 'Real estate', type: 'Sale', propertyType: src?.propertyType ?? 'Condo', property: src?.property ?? `${src?.addr}, ${src?.city}`, lang: 'FR', status: 'New', received: now(), linkedTo: a.id, message: `Seller of the property bought by ${src?.name ?? src?.clients?.[0]}. Contacts provided by the buyer.`, log: [{ t: now(), e: `Lead created from buyer file ${a.id}`, who: 'System' }] }
+      return notify({ ...s, leads: [lead, ...s.leads] }, `Seller lead created: ${a.seller.name} (linked to ${a.id})`, `/app/leads/${id}`)
+    }
+
+    // Accounts, roles, workspaces
+    case 'user/invite': return { ...s, users: [...s.users, { ...a.user, status: 'Invited', invitedAt: now() }] }
+    case 'user/accept': return { ...s, users: s.users.map((u) => (u.email === a.email ? { ...u, status: 'Active' } : u)) }
+    case 'role/add': return { ...s, roles: [...s.roles, a.role.name], rolePerms: { ...s.rolePerms, [a.role.name]: a.role.perms }, roleInfo: { ...(s.roleInfo ?? {}), [a.role.name]: a.role.description } }
+    case 'client/signup': return { ...s, clientAccount: { email: a.email, created: now(), twoFactor: a.twoFactor, method: a.method } }
+    case 'firm/signup': return { ...s, firms: [...s.firms, a.firm] }
 
     // Files
     case 'file/add': return { ...s, files: [a.file, ...s.files] }
@@ -155,26 +179,31 @@ function reducer(s, a) {
     }
     case 'booking/sendLink': return sendBookingOptions(s, s.files.find((x) => x.id === a.id), who(s))
     case 'file/assign': return mapFile(s, a.id, (f) => log({ ...f, [a.key]: a.value }, `${a.key === 'notary' ? 'Notary' : 'Paralegal'} assigned: ${a.value}`, who(s)))
+    // Bookings: `which` = 'main' (sale / only meeting) or 'mortgage' (purchases: mortgage signing first).
     case 'book': {
       const f = s.files.find((x) => x.id === a.id)
+      const key = a.which === 'mortgage' ? 'mortgageBooking' : 'booking'
+      const what = meetingName(f, a.which)
       const byStaff = a.booking.bookedBy === 'Staff'
-      const b = { ...a.booking, duration: 60, title: `Signing – ${f.clients.join(' & ')}` }
-      let n = mapFile(s, a.id, (x) => log(log({ ...x, booking: a.booking }, `${byStaff ? `${who(s)} booked` : 'Client booked'} signing: ${a.booking.mode}, ${fmtWhen(a.booking)} with ${a.booking.notary}`, byStaff ? who(s) : x.clients[0]), `Outlook: event created in ${a.booking.notary}'s calendar${a.booking.teamsUrl ? ' with Teams link' : ''}; invitation sent to ${a.booking.attendees.join(', ')}`))
+      const b = { ...a.booking, duration: 60, title: `${what} – ${f.clients.join(' & ')}` }
+      let n = mapFile(s, a.id, (x) => log(log({ ...x, [key]: a.booking }, `${byStaff ? `${who(s)} booked` : 'Client booked'} ${what.toLowerCase()}: ${a.booking.mode}, ${fmtWhen(a.booking)} with ${a.booking.notary}`, byStaff ? who(s) : x.clients[0]), `Outlook: event created in ${a.booking.notary}'s calendar${a.booking.teamsUrl ? ' with Teams link' : ''}; invitation sent to ${a.booking.attendees.join(', ')}`))
       if (f.isDemo) n = email(n, 'booked', apptData('signing', { ...b, who: a.booking.notary }))
-      return byStaff ? n : notify(n, `${f.clients[0]} booked signing on ${a.booking.date} at ${a.booking.time}`, '/app/calendar')
+      return byStaff ? n : notify(n, `${f.clients[0]} booked the ${what.toLowerCase()} on ${a.booking.date} at ${a.booking.time}`, '/app/calendar')
     }
     case 'booking/reschedule': {
       const f = s.files.find((x) => x.id === a.id)
-      const nb = { ...f.booking, ...a.changes }
-      let n = mapFile(s, a.id, (x) => log({ ...x, booking: nb }, `Signing rescheduled by ${a.by === 'Client' ? 'client' : who(s)}: ${fmtWhen(nb)} · Outlook event updated`, a.by === 'Client' ? x.clients[0] : who(s)))
+      const key = a.which === 'mortgage' ? 'mortgageBooking' : 'booking'
+      const nb = { ...f[key], ...a.changes }
+      let n = mapFile(s, a.id, (x) => log({ ...x, [key]: nb }, `${meetingName(f, a.which)} rescheduled by ${a.by === 'Client' ? 'client' : who(s)}: ${fmtWhen(nb)} · Outlook event updated`, a.by === 'Client' ? x.clients[0] : who(s)))
       if (f.isDemo) n = email(n, 'rescheduled', apptData('signing', { ...nb, who: nb.notary, duration: 60 }))
-      return a.by === 'Client' ? notify(n, `${f.clients[0]} rescheduled signing to ${fmtWhen(nb)}`, '/app/calendar') : n
+      return a.by === 'Client' ? notify(n, `${f.clients[0]} rescheduled to ${fmtWhen(nb)}`, '/app/calendar') : n
     }
     case 'booking/cancel': {
       const f = s.files.find((x) => x.id === a.id)
-      let n = mapFile(s, a.id, (x) => log({ ...x, booking: null }, `Signing cancelled by ${a.by === 'Client' ? 'client' : who(s)} · Outlook event removed · booking link re-opened`, a.by === 'Client' ? x.clients[0] : who(s)))
-      if (f.isDemo) n = email(n, 'cancelled', apptData('signing', { ...f.booking, who: f.booking.notary, duration: 60 }))
-      return a.by === 'Client' ? notify(n, `${f.clients[0]} cancelled their signing appointment`, `/app/files/${a.id}`) : n
+      const key = a.which === 'mortgage' ? 'mortgageBooking' : 'booking'
+      let n = mapFile(s, a.id, (x) => log({ ...x, [key]: null }, `${meetingName(f, a.which)} cancelled by ${a.by === 'Client' ? 'client' : who(s)} · Outlook event removed · booking re-opened`, a.by === 'Client' ? x.clients[0] : who(s)))
+      if (f.isDemo) n = email(n, 'cancelled', apptData('signing', { ...f[key], who: f[key].notary, duration: 60 }))
+      return a.by === 'Client' ? notify(n, `${f.clients[0]} cancelled an appointment`, `/app/files/${a.id}`) : n
     }
     case 'consult/book': {
       const ev = { ...a.event, id: a.event.id ?? uid(), kind: 'consultation' }
@@ -210,6 +239,11 @@ function reducer(s, a) {
     case 'reminders/run': {
       let n = s
       let count = 0
+      for (const f of s.files.filter((x) => x.mortgageBooking && isSoon(x.mortgageBooking.date))) {
+        count++
+        n = mapFile(n, f.id, (x) => log(x, `Automation: reminder sent (email + SMS) for the mortgage signing ${fmtWhen(f.mortgageBooking)}`))
+        if (f.isDemo) n = email(n, 'apptReminder', apptData('signing', { ...f.mortgageBooking, who: f.mortgageBooking.notary, duration: 60 }))
+      }
       for (const f of s.files.filter((x) => x.booking && isSoon(x.booking.date))) {
         count++
         n = mapFile(n, f.id, (x) => log(x, `Automation: reminder sent (email + SMS) for ${fmtWhen(f.booking)}`))
@@ -223,7 +257,17 @@ function reducer(s, a) {
       }
       return { ...n, lastReminderCount: count }
     }
-    case 'title/toggle': return mapFile(s, a.id, (f) => ({ ...f, title: { ...f.title, [a.key]: !f.title[a.key] } }))
+    case 'check/toggle': return mapFile(s, a.id, (f) => {
+      const cur = f.checklist?.[a.item] ?? {}
+      const on = !cur[a.col]
+      const next = { ...f, checklist: { ...f.checklist, [a.item]: { ...cur, [a.col]: on } } }
+      return a.col === 'req' ? next : log(next, `Checklist: “${a.label}” ${on ? '✓' : 'unticked'} (${a.col === 'para' ? 'paralegal' : 'notary'})`, who(s))
+    })
+    case 'check/note': return mapFile(s, a.id, (f) => ({ ...f, checklist: { ...f.checklist, [a.item]: { ...(f.checklist?.[a.item] ?? {}), note: a.note } } }))
+    case 'tracker/set': return mapFile(s, a.id, (f) => log({ ...f, tracker: { ...f.tracker, [a.doc]: { ...(f.tracker?.[a.doc] ?? {}), [a.field]: a.field === 'req' || a.field === 'rec' ? new Date().toISOString().slice(0, 10) : a.value } } }, `${a.label}: ${a.field === 'req' ? 'requested' : 'received'}`, who(s)))
+    case 'sheet/set': return mapFile(s, a.id, (f) => ({ ...f, sheet: { ...f.sheet, [a.key]: a.value } }))
+    case 'file/set': return mapFile(s, a.id, (f) => log({ ...f, [a.key]: a.value }, `${a.label ?? a.key} set to ${a.value}`, who(s)))
+    case 'fct/send': return mapFile(s, a.id, (f) => log({ ...f, fctSent: true }, 'Title insurance request sent to FCT (pre-filled from the file)', who(s)))
     case 'closing/toggle': return mapFile(s, a.id, (f) => log({ ...f, closing: { ...f.closing, [a.key]: !f.closing[a.key] } }, a.label + (f.closing[a.key] ? ' (unchecked)' : ''), who(s)))
     case 'docs/upload': return mapFile(s, a.id, (f) => log({ ...f, finalDocs: FINAL_DOCS }, `${FINAL_DOCS.length} final documents uploaded`, who(s)))
     case 'docs/publish': {
@@ -268,9 +312,16 @@ function reducer(s, a) {
     // Funds (buyer funds request; trust reconciliation stays manual)
     case 'funds/request': {
       const f = s.files.find((x) => x.id === a.id)
-      let n = mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, requested: true, amount: a.amount } }, `Funds request emailed (${a.amountLabel}, wire or Atlas coupon + proof of insurance)`, who(s)))
+      let n = mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, requested: true, amount: a.amount } }, `Funds request emailed (${a.amountLabel}): wire only, proof of source of funds, password-protected banking instructions`, who(s)))
       if (f.isDemo) n = email(n, 'funds', { amount: a.amountLabel })
       return n
+    }
+    case 'funds/password': return mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, passwordSent: true } }, 'Password-protected banking instructions sent · password to be given by phone only', who(s)))
+    case 'funds/passwordConfirmed': return mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, passwordConfirmed: true } }, 'Password confirmed with the client by phone', who(s)))
+    case 'funds/source': {
+      const f = s.files.find((x) => x.id === a.id)
+      const n = mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, source: a.source } }, `Client declared source of funds: ${a.source.origin}${a.source.thirdParty ? ' · includes third-party funds' : ''}${a.source.abroad ? ' · funds from abroad' : ''}`, x.clients[0]))
+      return notify(n, `${f.clients[0]} declared the source of funds`, `/app/files/${a.id}`)
     }
     case 'funds/received': return mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, received: !x.funds?.received } }, x.funds?.received ? 'Funds marked not received' : 'Funds received in trust account (confirmed manually)', who(s)))
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Inbox as InboxIcon, Mail, MailOpen, ArrowRight, Star, Send, FileText, Video, CalendarPlus } from 'lucide-react'
+import { Inbox as InboxIcon, Mail, MailOpen, ArrowRight, Star, Send, FileText, Video, CalendarPlus, Paperclip } from 'lucide-react'
 import { downloadIcs, OFFICE_ADDRESS } from '../../availability'
 import { useStore } from '../../store'
 import { Logo, Avatar } from '../../ui'
@@ -56,7 +56,7 @@ export default function Inbox() {
           const e = emailContent(m.kind, L, { ...ctx, ...m.data })
           return (
             <button key={m.id} className={'mail-item' + (m.id === openId ? ' on' : '') + (m.read ? '' : ' unread')} onClick={() => select(m)}>
-              <span className="row between"><b className="row" style={{ gap: 6 }}>{m.read ? <MailOpen size={14} /> : <Mail size={14} />} Étude Dubois Notaires</b><span className="small muted">{m.t.replace('Today ', '')}</span></span>
+              <span className="row between"><b className="row" style={{ gap: 6 }}>{m.read ? <MailOpen size={14} /> : <Mail size={14} />} Acoca Notaires</b><span className="small muted">{m.t.replace('Today ', '')}</span></span>
               <span className="mail-subj">{e.subject}</span>
               <span className="small muted mail-prev">{e.body.split('\n').filter(Boolean)[1]}</span>
             </button>
@@ -70,8 +70,9 @@ export default function Inbox() {
             <h1 style={{ fontSize: 22 }}>{content.subject}</h1>
             <div className="row" style={{ gap: 10, margin: '16px 0 20px' }}>
               <Logo size={36} />
-              <div className="grow"><b>Étude Dubois Notaires</b> <span className="small muted">&lt;nathalie@etude-demo.ca&gt;</span><div className="small muted">{t(L, 'to')}: emilie.gagnon@exemple.ca · {open.t}</div></div>
+              <div className="grow"><b>Acoca Notaires</b> <span className="small muted">&lt;nathalie@acoca-demo.ca&gt;</span><div className="small muted">{t(L, 'to')}: emilie.gagnon@exemple.ca · {open.t}</div></div>
             </div>
+            {content.attach && <button className="attach-chip as-link" onClick={() => nav(content.attach.to)}><Paperclip size={13} /> {content.attach.label}</button>}
             <div className="mail-body">{content.body}</div>
             {content.slots?.length > 0 && (
               <div className="slot-offer">
@@ -85,9 +86,10 @@ export default function Inbox() {
             <div className="row" style={{ marginTop: 22, gap: 10 }}>
               {content.teams && <button className="btn btn-primary mail-cta teams-btn" style={{ marginTop: 0 }} onClick={() => notify(L === 'fr' ? 'Ouverture de Microsoft Teams (démo)' : 'Opening Microsoft Teams (demo)')}><Video size={16} /> {t(L, 'joinTeams')}</button>}
               {content.cta && <button className={'btn mail-cta ' + (content.teams ? '' : 'btn-primary')} style={{ marginTop: 0 }} onClick={() => nav(content.to)}>{content.cta} <ArrowRight size={16} /></button>}
-              {content.ics && open.data && <button className="btn mail-cta" style={{ marginTop: 0 }} onClick={() => downloadIcs({ title: open.data.title ?? 'Étude Dubois Notaires', date: open.data.date, time: open.data.time, duration: open.data.duration, location: open.data.teams ?? OFFICE_ADDRESS })}><CalendarPlus size={16} /> {t(L, 'addToCal')}</button>}
+              {content.ics && open.data && <button className="btn mail-cta" style={{ marginTop: 0 }} onClick={() => downloadIcs({ title: open.data.title ?? 'Acoca Notaires', date: open.data.date, time: open.data.time, duration: open.data.duration, location: open.data.teams ?? OFFICE_ADDRESS })}><CalendarPlus size={16} /> {t(L, 'addToCal')}</button>}
             </div>
-            <p className="small muted" style={{ marginTop: 28 }}>Étude Dubois Notaires inc. · 1000 rue Exemple, Montréal · 514-555-0100</p>
+            <p className="fraud-note">{t(L, 'fraud')}</p>
+            <p className="small muted" style={{ marginTop: 12 }}>Acoca Notaires inc. · 700 Av. Sainte-Croix, Saint-Laurent · 514 748-6539</p>
           </>
         )}
       </article>
