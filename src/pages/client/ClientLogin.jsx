@@ -31,7 +31,7 @@ export default function ClientLogin() {
             {state.clientAccount?.method && state.clientAccount.method !== 'password' ? (
               <button className="btn btn-block" onClick={next}>{L === 'fr' ? 'Continuer avec' : 'Continue with'} {state.clientAccount.method}</button>
             ) : (
-              <label className="field"><span>{t(L, 'suPassword')}</span><input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
+              <label className="field"><span>{L === 'fr' ? 'Mot de passe' : 'Password'}</span><input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
             )}
             {error && <p className="small" style={{ color: 'var(--bad)' }}>{error} <Link to="/client/signup">{t(L, 'suTitle')}</Link></p>}
             <p className="small muted" style={{ textAlign: 'center' }}>{t(L, 'liNoAccount')} <Link to="/client/signup">{t(L, 'suTitle')}</Link></p>
