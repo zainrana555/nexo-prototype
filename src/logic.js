@@ -110,8 +110,9 @@ export function demoSteps(state) {
   const d = (k) => !!file && stepDone(file, k)
   return [
     { side: 'Staff', label: 'Sign in to Nexo', done: !!state.auth, to: '/login' },
+    { side: 'Client', label: 'Émilie submits the website form, then creates her client account', done: !!state.clientAccount, to: '/client/signup' },
     { side: 'Staff', label: 'Open the new lead from Émilie Gagnon and send the mini-mandate', done: lead && lead.status !== 'New', to: `/app/leads/${DEMO_LEAD}` },
-    { side: 'Client', label: 'Émilie accepts the quote from her inbox', done: !!file, to: '/client' },
+    { side: 'Client', label: 'Émilie signs in and accepts the quote in her messages', done: !!file, to: '/client' },
     { side: 'Client', label: 'Émilie completes the questionnaire and uploads 2 IDs', done: d('questionnaire'), to: '/client' },
     { side: 'Staff', label: 'Approve her IDs in the ID review queue', done: d('ids'), to: '/app/id-review' },
     { side: 'Staff', label: 'Build the fee quote and send the service contract', done: !!file?.contract.sent, to: `/app/files/${DEMO_FILE}?tab=contract` },

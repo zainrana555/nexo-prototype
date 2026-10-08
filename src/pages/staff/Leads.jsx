@@ -204,6 +204,7 @@ export function LeadDetail() {
             <div className="kv"><span className="muted">Language</span><span>{lead.lang}</span></div>
             <div className="kv"><span className="muted">Target signing</span><span>{fmtDate(lead.closingDate)}</span></div>
             <div className="kv"><span className="muted">Quote</span><span className="mono">{lead.quote ? money(lead.quote) : '—'}</span></div>
+            <div className="kv"><span className="muted">Client account</span>{lead.isDemo && state.clientAccount ? <Badge tone="ok">Active · 2-step</Badge> : <Badge>Not created yet</Badge>}</div>
             {lead.lostReason && <div className="kv"><span className="muted">Lost reason</span><span>{lead.lostReason}</span></div>}
             {consult && <div className="consult-box"><span className="small muted">Consultation booked</span><b>{fmtDate(consult.date)} · {consult.time}</b><span className="small row" style={{ gap: 4 }}>{consult.mode === 'Teams video' && <Video size={13} />}{consult.mode} · {consult.who}</span></div>}
           </section>

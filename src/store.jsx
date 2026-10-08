@@ -22,6 +22,7 @@ const initial = () => ({
   roles: ROLES,
   users: STAFF.map((u) => ({ ...u, status: 'Active' })),
   clientAccount: null,
+  clientSignedIn: false,
   firms: [{ name: 'Acoca Notaires inc.', workspace: 'acoca-notaires', plan: 'Firm', users: 10 }],
   faxes: INITIAL_FAXES,
   templates: INITIAL_TEMPLATES.map((t) => ({ recipients: 'Client', access: ROLES, ...t })),
@@ -129,7 +130,9 @@ function reducer(s, a) {
     case 'user/invite': return { ...s, users: [...s.users, { ...a.user, status: 'Invited', invitedAt: now() }] }
     case 'user/accept': return { ...s, users: s.users.map((u) => (u.email === a.email ? { ...u, status: 'Active' } : u)) }
     case 'role/add': return { ...s, roles: [...s.roles, a.role.name], rolePerms: { ...s.rolePerms, [a.role.name]: a.role.perms }, roleInfo: { ...(s.roleInfo ?? {}), [a.role.name]: a.role.description } }
-    case 'client/signup': return { ...s, clientAccount: { email: a.email, created: now(), twoFactor: a.twoFactor, method: a.method } }
+    case 'client/signup': return { ...s, clientSignedIn: true, clientAccount: { email: a.email, created: now(), twoFactor: a.twoFactor, method: a.method } }
+    case 'client/login': return { ...s, clientSignedIn: true }
+    case 'client/logout': return { ...s, clientSignedIn: false }
     case 'firm/signup': return { ...s, firms: [...s.firms, a.firm] }
 
     // Files

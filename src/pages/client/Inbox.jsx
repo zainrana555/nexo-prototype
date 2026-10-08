@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Inbox as InboxIcon, Mail, MailOpen, ArrowRight, Star, Send, FileText, Video, CalendarPlus, Paperclip } from 'lucide-react'
+import { Inbox as InboxIcon, Mail, MailOpen, ArrowRight, FileText, Video, CalendarPlus, Paperclip, BookOpen, LogOut } from 'lucide-react'
 import { downloadIcs, OFFICE_ADDRESS } from '../../availability'
 import { useStore } from '../../store'
 import { Logo, Avatar } from '../../ui'
@@ -41,8 +41,8 @@ export default function Inbox() {
         <div className="row" style={{ gap: 10, padding: '4px 6px 14px' }}><Avatar name="Émilie Gagnon" size={36} /><span style={{ lineHeight: 1.2 }}><b style={{ display: 'block' }}>Émilie Gagnon</b><span className="small muted">emilie.gagnon@exemple.ca</span></span></div>
         <button className="nav-link active"><InboxIcon size={17} /><span className="grow">{t(L, 'inbox')}</span>{unread > 0 && <span className="nav-count">{unread}</span>}</button>
         <button className="nav-link" onClick={() => nav('/client/file')}><FileText size={17} /><span className="grow">{t(L, 'myFile')}</span></button>
-        <span className="nav-link soon"><Star size={17} /><span className="grow">Starred</span></span>
-        <span className="nav-link soon"><Send size={17} /><span className="grow">Sent</span></span>
+        <button className="nav-link" onClick={() => nav('/client/guide')}><BookOpen size={17} /><span className="grow">{t(L, 'guide')}</span></button>
+        <button className="nav-link" onClick={() => { dispatch({ type: 'client/logout' }); nav('/client/login') }}><LogOut size={17} /><span className="grow">{t(L, 'logout')}</span></button>
         <div className="grow" />
         <div className="seg light" role="group" aria-label="Language">
           <button className={L === 'fr' ? 'on' : ''} onClick={() => dispatch({ type: 'lang', lang: 'fr' })}>Français</button>

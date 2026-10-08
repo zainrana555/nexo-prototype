@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Inbox, FolderOpen, ShieldCheck, CalendarDays, FileText, Zap, Settings, Bell, Search, Plus,
-  LogOut, User, CircleCheck, Circle, CirclePlay, RotateCcw, X, Mail, ArrowRight, Printer, Landmark,
+  LogOut, User, CircleCheck, Circle, CirclePlay, RotateCcw, X, Mail, ArrowRight, Printer, Landmark, Lock,
 } from 'lucide-react'
 import { useStore } from './store'
 import { Logo, Avatar, Modal } from './ui'
@@ -218,8 +218,15 @@ function TopBar() {
 
 /* ---------- Client shell ---------- */
 
+const CLIENT_PUBLIC = ['/client/login', '/client/signup']
+
+// Every client page needs a signed-in client account; messages are only readable after sign-in.
 export function ClientLayout() {
   const { pathname } = useLocation()
+  const { state } = useStore()
+  const isPublic = CLIENT_PUBLIC.includes(pathname)
+  if (!state.clientSignedIn && !isPublic) return <Navigate to={state.clientAccount ? '/client/login' : '/client/signup'} replace />
+  if (state.clientSignedIn && isPublic) return <Navigate to="/client" replace />
   const inbox = pathname === '/client' || pathname === '/client/'
   return (
     <div className="app">
@@ -227,7 +234,7 @@ export function ClientLayout() {
       {inbox ? <Outlet /> : (
         <div className="client-shell">
           <div className="client-wrap">
-            <Link to="/client" className="back-inbox"><Mail size={14} /> Back to Émilie’s inbox</Link>
+            {isPublic ? <span className="back-inbox"><Lock size={14} /> acoca.ca · {state.lang === 'fr' ? 'espace client' : 'client space'}</span> : <Link to="/client" className="back-inbox"><Mail size={14} /> {t(state.lang, 'backMessages')}</Link>}
             <ClientCard />
           </div>
         </div>

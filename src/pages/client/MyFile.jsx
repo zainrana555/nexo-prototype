@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, FileText, ShieldCheck, Banknote } from 'lucide-react'
+import { Check, FileText, Banknote } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../i18n'
 import { stepDone, bookingUnlocked, fmtDate } from '../../logic'
@@ -78,7 +78,6 @@ export default function MyFile() {
       )}
       <div className="row">
         <button className="attach-chip as-link" onClick={() => nav(`/client/guide?role=${buyer ? 'buyer' : 'seller'}`)}><FileText size={13} /> {t(L, 'guide')}</button>
-        {!state.clientAccount && <button className="attach-chip as-link" onClick={() => nav('/client/signup')}><ShieldCheck size={13} /> {t(L, 'suTitle')}</button>}
       </div>
       <ol className="tracker">
         {steps.map((s, i) => (

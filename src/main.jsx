@@ -25,6 +25,7 @@ import MyFile from './pages/client/MyFile'
 import Consult from './pages/client/Consult'
 import Guide from './pages/client/Guide'
 import Signup from './pages/client/Signup'
+import ClientLogin from './pages/client/ClientLogin'
 import FirmSignup from './pages/FirmSignup'
 import './styles.css'
 
@@ -62,6 +63,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="consult" element={<Consult />} />
             <Route path="guide" element={<Guide />} />
             <Route path="signup" element={<Signup />} />
+            <Route path="login" element={<ClientLogin />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

@@ -13,9 +13,9 @@ const S = {
   notYetSub: { fr: 'Vous recevrez un courriel dès qu’elle le sera.', en: 'You’ll get an email as soon as it is.' },
 
   // Inbox
-  inbox: { fr: 'Boîte de réception', en: 'Inbox' },
+  inbox: { fr: 'Mes messages', en: 'My messages' },
   inboxEmpty: { fr: 'Sélectionnez un message', en: 'Select a message' },
-  inboxHint: { fr: 'Démo : les courriels arrivent ici quand l’étude agit dans l’application.', en: 'Demo: emails arrive here as the office acts in the staff app.' },
+  inboxHint: { fr: 'Les messages de l’étude arrivent ici, dans votre espace sécurisé. Votre courriel personnel reçoit seulement un avis « nouveau message » avec un lien de connexion.', en: 'Messages from the office arrive here, in your secure space. Your personal email only gets a “new message” notice with a sign-in link.' },
   from: { fr: 'De', en: 'From' },
   to: { fr: 'À', en: 'To' },
 
@@ -259,7 +259,16 @@ const S = {
 
   // Client account
   suTitle: { fr: 'Créer votre espace client', en: 'Create your client space' },
-  suSub: { fr: 'Un accès sécurisé pour suivre votre dossier, signer et télécharger vos documents.', en: 'Secure access to follow your file, sign and download your documents.' },
+  suSub: { fr: 'Merci pour votre demande sur acoca.ca. Créez votre espace sécurisé : c’est ici que vous recevrez notre soumission, que vous signerez et que vous suivrez votre dossier.', en: 'Thank you for your request on acoca.ca. Create your secure space: this is where you will receive our quote, sign and follow your file.' },
+  liTitle: { fr: 'Connexion à votre espace client', en: 'Sign in to your client space' },
+  liSub: { fr: 'Acoca Notaires · accès sécurisé à vos messages et à votre dossier.', en: 'Acoca Notaires · secure access to your messages and file.' },
+  liNoAccount: { fr: 'Pas encore de compte?', en: 'No account yet?' },
+  liHaveAccount: { fr: 'Déjà un compte?', en: 'Already have an account?' },
+  liSignIn: { fr: 'Se connecter', en: 'Sign in' },
+  liUnknown: { fr: 'Aucun compte pour ce courriel. Créez votre espace client.', en: 'No account for this email. Create your client space.' },
+  logout: { fr: 'Se déconnecter', en: 'Sign out' },
+  toMessages: { fr: 'Voir mes messages', en: 'View my messages' },
+  backMessages: { fr: 'Retour à mes messages', en: 'Back to my messages' },
   suCode: { fr: 'Entrez le code reçu par courriel', en: 'Enter the code sent by email' },
   suPassword: { fr: 'Choisissez un mot de passe', en: 'Choose a password' },
   suPassword2: { fr: 'Confirmez le mot de passe', en: 'Confirm the password' },
