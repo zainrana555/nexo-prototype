@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react'
 import {
-  INITIAL_FILES, INITIAL_LEADS, INITIAL_RULES, INITIAL_RATES, INITIAL_TEMPLATES, INITIAL_EVENTS,
+  INITIAL_FILES, INITIAL_LEADS, INITIAL_RULES, INITIAL_TEMPLATES, INITIAL_EVENTS, INITIAL_FAXES,
+  INITIAL_FEE_ITEMS, INITIAL_FEE_RULES, INITIAL_ROLE_PERMS, ROLES,
   DEMO_FILE, FINAL_DOCS, addDays,
 } from './data'
 import { bookingUnlocked, validIds } from './logic'
 import { suggestSlots, DURATION } from './availability'
 
-const KEY = 'nexo-demo-v3'
+const KEY = 'nexo-demo-v4'
 
 const initial = () => ({
   auth: null,
@@ -14,8 +15,11 @@ const initial = () => ({
   leads: INITIAL_LEADS,
   files: INITIAL_FILES,
   rules: INITIAL_RULES,
-  rates: INITIAL_RATES,
-  templates: INITIAL_TEMPLATES,
+  feeItems: INITIAL_FEE_ITEMS,
+  feeRules: INITIAL_FEE_RULES,
+  rolePerms: INITIAL_ROLE_PERMS,
+  faxes: INITIAL_FAXES,
+  templates: INITIAL_TEMPLATES.map((t) => ({ recipients: 'Client', access: ROLES, ...t })),
   events: INITIAL_EVENTS,
   emails: [{ id: 'm1', kind: 'ack', t: 'Today 08:41', read: false }],
   notifications: [
@@ -57,17 +61,17 @@ function sendBookingOptions(s, f, by) {
   return n
 }
 
-function fileFromLead(lead) {
+function fileFromLead(lead, id) {
   return {
-    id: DEMO_FILE, isDemo: !!lead.isDemo, fromLead: lead.id,
+    id, isDemo: !!lead.isDemo, fromLead: lead.id, clientType: lead.clientType ?? 'Individual',
     clients: [lead.name], type: lead.type, addr: lead.property.split(',').slice(0, -1).join(',') || lead.property,
     city: lead.property.split(',').pop().trim(), lang: lead.lang, notary: 'Me Anne Dubois', paralegal: 'Nathalie Roy',
     lender: '—', closingDate: lead.closingDate ?? addDays(30),
     contract: { sent: false, signed: false, total: lead.quote ?? 0, lang: lead.lang },
-    bankReceived: false, title: { deeds10: false, chain30: false, cadastre: false }, booking: null,
+    bankReceived: false, title: { deeds10: false, chain30: false, cadastre: false, index: false, bankruptcy: false, municipalTax: false, schoolTax: false }, funds: { requested: false, received: false }, booking: null,
     closing: { consigno: false, lenderReport: false }, finalDocs: [], docsPublished: false, portalViewed: false,
     procardex: false, escalated: false, reminders: 0,
-    parties: [{ name: lead.name, role: lead.type === 'Sale' ? 'Seller' : lead.type === 'Refinance' ? 'Borrower' : 'Buyer', email: lead.email, phone: lead.phone, marital: '—', ids: [], liveness: 'Not started', questionnaire: 0 }],
+    parties: [{ name: lead.name, corporate: lead.clientType === 'Corporation', role: lead.type === 'Sale' ? 'Seller' : lead.type === 'Refinance' ? 'Borrower' : 'Buyer', email: lead.email, phone: lead.phone, marital: '—', ids: [], liveness: 'Not started', questionnaire: 0 }],
     log: [
       { t: now(), e: 'Automation: questionnaire link emailed to client', who: 'System' },
       { t: now(), e: `File opened from lead ${lead.id} (mini-mandate accepted)`, who: 'System' },
@@ -96,7 +100,7 @@ function reducer(s, a) {
     case 'lead/accept': {
       const lead = s.leads.find((l) => l.id === a.id)
       if (lead.fileId) return s
-      const file = fileFromLead(lead)
+      const file = fileFromLead(lead, lead.isDemo ? DEMO_FILE : `26-${String(431 + s.files.length).padStart(4, '0')}`)
       let n = mapLead(s, a.id, (l) => log({ ...l, status: 'Won', fileId: file.id }, `Mini-mandate accepted ${a.byClient ? 'by client' : 'manually'} · file ${file.id} created`, a.byClient ? lead.name : who(s)))
       n = { ...n, files: [file, ...n.files] }
       if (lead.isDemo) n = email(n, 'questionnaire')
@@ -136,7 +140,7 @@ function reducer(s, a) {
     }
     case 'contract/send': {
       const f = s.files.find((x) => x.id === a.id)
-      let n = mapFile(s, a.id, (x) => log({ ...x, contract: { ...x.contract, sent: true, total: a.total, lang: a.lang, options: a.options } }, `Service contract sent for e-signature (${a.lang}, ${a.totalLabel})`, who(s)))
+      let n = mapFile(s, a.id, (x) => log({ ...x, contract: { ...x.contract, sent: true, sentAt: new Date().toISOString().slice(0, 10), total: a.total, lang: a.lang, options: a.options } }, `Service contract sent for e-signature (${a.lang}, ${a.totalLabel})`, who(s)))
       if (f.isDemo) n = email(n, 'contract')
       return n
     }
@@ -238,7 +242,51 @@ function reducer(s, a) {
     // Settings & config
     case 'rule/toggle': return { ...s, rules: s.rules.map((r) => (r.id === a.id ? { ...r, on: !r.on } : r)) }
     case 'rule/add': return { ...s, rules: [...s.rules, { ...a.rule, id: Date.now(), on: true, runs: 0 }] }
-    case 'rates': return { ...s, rates: { ...s.rates, ...a.rates } }
+    case 'fees/save': return { ...s, feeItems: a.items }
+    case 'feeRule/toggle': return { ...s, feeRules: s.feeRules.map((r) => (r.id === a.id ? { ...r, on: !r.on } : r)) }
+    case 'perm/toggle': {
+      const cur = s.rolePerms[a.role] ?? []
+      return { ...s, rolePerms: { ...s.rolePerms, [a.role]: cur.includes(a.perm) ? cur.filter((p) => p !== a.perm) : [...cur, a.perm] } }
+    }
+    case 'template/add': return { ...s, templates: [...s.templates, { ...a.template, id: 'u' + uid() }] }
+    case 'rule/save': return { ...s, rules: s.rules.some((r) => r.id === a.rule.id) ? s.rules.map((r) => (r.id === a.rule.id ? a.rule : r)) : [...s.rules, { ...a.rule, id: Date.now(), runs: 0, on: true }] }
+
+    // Faxes
+    case 'fax/add': {
+      let n = { ...s, faxes: [a.fax, ...s.faxes] }
+      if (a.fax.status === 'routed') n = mapFile(n, a.fax.fileId, (f) => log(f, `Fax received: ${a.fax.docType} from ${a.fax.sender} · routed by AI (${Math.round(a.fax.confidence * 100)}% match) to ${f.notary} and ${f.paralegal}`))
+      return notify(n, a.fax.status === 'routed' ? `Fax routed automatically to file ${a.fax.fileId} (${a.fax.docType})` : 'New fax needs routing', a.fax.status === 'routed' ? `/app/files/${a.fax.fileId}?tab=documents` : '/app/fax')
+    }
+    case 'fax/route': {
+      const fax = s.faxes.find((x) => x.id === a.id)
+      let n = { ...s, faxes: s.faxes.map((x) => (x.id === a.id ? { ...x, status: 'routed', fileId: a.fileId, routedBy: who(s) } : x)) }
+      n = mapFile(n, a.fileId, (f) => log(f, `Fax received: ${fax.docType} from ${fax.sender} · sent to ${f.notary} and ${f.paralegal}`, who(s)))
+      return n
+    }
+    case 'fax/dismiss': return { ...s, faxes: s.faxes.map((x) => (x.id === a.id ? { ...x, status: 'dismissed', routedBy: who(s) } : x)) }
+
+    // Funds (buyer funds request; trust reconciliation stays manual)
+    case 'funds/request': {
+      const f = s.files.find((x) => x.id === a.id)
+      let n = mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, requested: true, amount: a.amount } }, `Funds request emailed (${a.amountLabel}, wire or Atlas coupon + proof of insurance)`, who(s)))
+      if (f.isDemo) n = email(n, 'funds', { amount: a.amountLabel })
+      return n
+    }
+    case 'funds/received': return mapFile(s, a.id, (x) => log({ ...x, funds: { ...x.funds, received: !x.funds?.received } }, x.funds?.received ? 'Funds marked not received' : 'Funds received in trust account (confirmed manually)', who(s)))
+
+    // Communications sent from inside Nexo (email or SMS composer)
+    case 'comm/send': {
+      const target = a.fileId ? s.files.find((x) => x.id === a.fileId) : s.leads.find((x) => x.id === a.leadId)
+      let n = a.fileId
+        ? mapFile(s, a.fileId, (x) => log(x, `${a.channel === 'sms' ? 'Text message' : 'Email'} sent: “${a.subject}”`, who(s)))
+        : mapLead(s, a.leadId, (x) => log(x, `${a.channel === 'sms' ? 'Text message' : 'Email'} sent: “${a.subject}”`, who(s)))
+      if (target?.isDemo && a.channel === 'email') n = email(n, 'custom', { subject: a.subject, body: a.body })
+      return n
+    }
+    case 'lead/move': {
+      if (a.status === 'Won') return reducer(s, { type: 'lead/accept', id: a.id })
+      return mapLead(s, a.id, (l) => log({ ...l, status: a.status, lostReason: a.status === 'Lost' ? 'Moved to Lost on the board' : l.lostReason }, `Moved to “${a.status}”`, who(s)))
+    }
     case 'template/save': return { ...s, templates: s.templates.map((t) => (t.id === a.template.id ? a.template : t)) }
     case 'event/add': return { ...s, events: [...s.events, { kind: 'internal', duration: 60, attendees: [], ...a.event, id: uid() }] }
 

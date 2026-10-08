@@ -1,4 +1,4 @@
-import { TAX, DEMO_FILE, DEMO_LEAD } from './data'
+import { TAX, DEMO_FILE, DEMO_LEAD, accessOf } from './data'
 
 // The file workflow. A file's stage is the first step not yet done.
 export const STAGES = [
@@ -21,7 +21,7 @@ const DONE = {
   ids: (f) => f.parties.every((p) => validIds(p).filter((i) => i.review === 'approved').length >= 2),
   contract: (f) => f.contract.signed,
   lender: (f) => f.bankReceived,
-  title: (f) => f.title.deeds10 && f.title.chain30 && f.title.cadastre,
+  title: (f) => TITLE_ITEMS.every(([k]) => f.title[k]),
   booking: (f) => !!f.booking,
   closing: (f) => f.closing.consigno,
   delivery: (f) => f.docsPublished,
@@ -44,17 +44,38 @@ export function stageInfo(f) {
 }
 export const bookingUnlocked = (f) => f.contract.signed && f.bankReceived
 
-export function computeFees({ type, parties = 1, remote, rush, mortgages = 0 }, rates) {
-  const professional = (Number(rates[type]) || 0) + Math.max(0, Number(parties) - 1) * Number(rates.perExtraParty)
-  const remoteFee = remote ? Number(rates.remoteSigning) : 0
-  const rushFee = rush ? Number(rates.rush) : 0
-  const dischargeFee = Math.max(0, Number(mortgages) || 0) * (Number(rates.discharge) || 0)
-  const taxable = professional + remoteFee + rushFee + dischargeFee
-  const gst = taxable * TAX.gst
-  const qst = taxable * TAX.qst
-  const disbursements = Number(rates.disbursements)
-  return { professional, remoteFee, rushFee, dischargeFee, gst, qst, disbursements, total: taxable + gst + qst + disbursements }
+// Fee selection = one published base price (dropdown) + quantities of units, options and disbursements.
+export function defaultFeeSelection(type, items, { parties = 1, mortgages = 0, remote = false, rush = false, corporate = false } = {}) {
+  const base = items.find((i) => i.kind === 'base' && i.type === type)?.id
+  const qty = { 'u-party': Math.max(0, Number(parties) - 1), 'u-discharge': Number(mortgages) || 0, 'o-remote': remote ? 1 : 0, 'o-rush': rush ? 1 : 0, 'o-corp': corporate ? 1 : 0 }
+  for (const i of items.filter((x) => x.kind === 'disbursement')) qty[i.id] = 1
+  return { base, qty }
 }
+
+export function computeFees(sel, items) {
+  const base = items.find((i) => i.id === sel.base)
+  const lines = [
+    ...(base ? [{ id: base.id, label: base.label, qty: 1, amount: Number(base.amount), taxable: base.taxable, kind: 'base' }] : []),
+    ...items.filter((i) => i.kind !== 'base' && (sel.qty?.[i.id] ?? 0) > 0)
+      .map((i) => ({ id: i.id, label: i.label, qty: Number(sel.qty[i.id]), amount: Number(i.amount) * Number(sel.qty[i.id]), taxable: i.taxable, kind: i.kind })),
+  ]
+  const taxableSub = lines.filter((l) => l.taxable).reduce((n, l) => n + l.amount, 0)
+  const nonTaxable = lines.filter((l) => !l.taxable).reduce((n, l) => n + l.amount, 0)
+  const gst = taxableSub * TAX.gst
+  const qst = taxableSub * TAX.qst
+  return { lines, taxableSub, nonTaxable, gst, qst, total: taxableSub + nonTaxable + gst + qst, deposit: !!base?.deposit }
+}
+
+// Service contract sent but unsigned for 3+ days.
+export const contractOverdue = (f) => f.contract.sent && !f.contract.signed && f.contract.sentAt && (Date.now() - new Date(f.contract.sentAt + 'T12:00')) / 86400000 >= 3
+
+// Permission check against the editable role → permissions matrix.
+export const can = (state, perm) => (state.rolePerms?.[accessOf(state.auth)] ?? []).includes(perm)
+
+export const TITLE_ITEMS = [
+  ['deeds10', '10-year deed review'], ['chain30', '30-year mortgage chain'], ['cadastre', 'Cadastre and servitudes (to origin of lot)'],
+  ['index', 'Index of immovables search'], ['bankruptcy', 'Bankruptcy search'], ['municipalTax', 'Municipal tax search'], ['schoolTax', 'School tax search'],
+]
 
 export const money = (n, lang = 'en') => Number(n || 0).toLocaleString(String(lang).toLowerCase() === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD' })
 

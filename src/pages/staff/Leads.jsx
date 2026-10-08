@@ -5,7 +5,8 @@ import { BookModal } from './Calendar'
 import { useStore, now } from '../../store'
 import { PageHeader, Badge, Modal, Avatar, Tabs } from '../../ui'
 import { LEAD_COLUMNS, addDays } from '../../data'
-import { computeFees, money, fmtDate } from '../../logic'
+import { computeFees, defaultFeeSelection, money, fmtDate } from '../../logic'
+import { Composer, composerFields } from '../../Shared'
 
 const SOURCE_ICON = { Email: Mail, 'Website form': Globe, 'Broker referral': Users, Phone, 'AI phone agent': Bot }
 
@@ -13,13 +14,15 @@ export default function Leads() {
   const { state } = useStore()
   const nav = useNavigate()
   const [view, setView] = useState('board')
+  const [over, setOver] = useState(null)
+  const { dispatch, notify } = useStore()
   const [adding, setAdding] = useState(false)
 
   return (
     <>
       <PageHeader
         title="Leads"
-        sub="Inbound pricing requests: quote, send the mini-mandate, convert to a file"
+        sub="Inbound requests from email, the website and the AI phone agent. Drag cards between columns."
         actions={<>
           <div className="seg light" role="group" aria-label="View">
             <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}><Columns3 size={15} /> Board</button>
@@ -34,14 +37,16 @@ export default function Leads() {
           {LEAD_COLUMNS.map((c) => {
             const items = state.leads.filter((l) => l.status === c)
             return (
-              <section key={c} className="board-col">
+              <section key={c} className={'board-col' + (over === c ? ' drop' : '')} aria-label={`${c} column`}
+                onDragOver={(e) => { e.preventDefault(); setOver(c) }} onDragLeave={() => setOver(null)}
+                onDrop={(e) => { e.preventDefault(); setOver(null); const id = e.dataTransfer.getData('text/plain'); const l = state.leads.find((x) => x.id === id); if (l && l.status !== c) { dispatch({ type: 'lead/move', id, status: c }); notify(c === 'Won' ? `${l.name}: file opened` : `${l.name} moved to “${c}”`) } }}>
                 <div className="row between"><b>{c}</b><span className="nav-count quiet">{items.length}</span></div>
                 {items.map((l) => {
                   const Icon = SOURCE_ICON[l.source] ?? Mail
                   return (
-                    <Link key={l.id} to={`/app/leads/${l.id}`} className={'lead-card' + (l.isDemo && l.status === 'New' ? ' pulse' : '')}>
+                    <Link key={l.id} to={`/app/leads/${l.id}`} draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', l.id); e.dataTransfer.effectAllowed = 'move' }} className={'lead-card' + (l.isDemo && l.status === 'New' ? ' pulse' : '')}>
                       <div className="row between"><b>{l.name}</b><span className="small muted">{l.received}</span></div>
-                      <span className="small muted">{l.type} · {l.property.split(',').pop()}</span>
+                      <span className="small muted">{l.type} · {l.property.split(',').pop()}{l.clientType === 'Corporation' && <> · <Badge tone="purple">Corporation</Badge></>}</span>
                       <div className="row between">
                         <span className="small muted row" style={{ gap: 4 }}><Icon size={13} /> {l.source}</span>
                         {l.quote ? <span className="small mono">{money(l.quote)}</span> : <Badge tone="blue">{l.lang}</Badge>}
@@ -190,7 +195,7 @@ export function LeadDetail() {
           <section className="card stack" style={{ gap: 8 }}>
             <h2>Quick actions</h2>
             <button className="btn" onClick={() => { dispatch({ type: 'lead/log', id, e: 'Call logged: left voicemail' }); notify('Call logged') }}><Phone size={16} /> Log a call</button>
-            <button className="btn" onClick={() => { dispatch({ type: 'lead/log', id, e: 'Email reply sent' }); notify('Reply sent') }}><MessageSquare size={16} /> Reply by email</button>
+            <button className="btn" onClick={() => setModal('compose')}><MessageSquare size={16} /> Reply by email or text</button>
             <button className="btn" onClick={() => { dispatch({ type: 'lead/consultLink', id }); notify('Consultation booking link emailed') }}><Send size={16} /> Send consultation link</button>
             <button className="btn" onClick={() => setModal('consult')}><CalendarDays size={16} /> Book consultation</button>
           </section>
@@ -199,6 +204,8 @@ export function LeadDetail() {
 
       {modal === 'mandate' && <MandateModal lead={lead} onClose={() => setModal(null)} />}
       {modal === 'consult' && <BookModal leadId={lead.id} onClose={() => setModal(null)} />}
+      {modal === 'compose' && <Composer to={`${lead.name} <${lead.email}> · ${lead.phone}`} lang={lead.lang} leadId={lead.id} onClose={() => setModal(null)}
+        fields={composerFields({ first: lead.name.split(' ')[0], address: lead.property.split(',')[0], file: lead.fileId ?? '—', total: lead.quote ? money(lead.quote) : '—', notary: 'Me Anne Dubois' })} />}
       {modal === 'lost' && (
         <LostModal onClose={() => setModal(null)} onSave={(reason) => { dispatch({ type: 'lead/lost', id, reason }); setModal(null); notify('Lead marked lost') }} />
       )}
@@ -231,11 +238,16 @@ function LostModal({ onClose, onSave }) {
 function MandateModal({ lead, onClose }) {
   const { state, dispatch, notify } = useStore()
   const [lang, setLang] = useState(lead.lang)
-  const [o, setO] = useState({ type: lead.type, parties: 1, remote: false, rush: false })
-  const fees = computeFees(o, state.rates)
-  const tpl = state.templates.find((t) => t.name === `Mini-mandate · ${lead.type === 'Refinance' ? 'Refinance' : lead.type === 'Sale' ? 'Seller' : 'Buyer'}`)
-  const body = (tpl?.body[lang] ?? '')
-    .replaceAll('{{client}}', lead.name.split(' ')[0])
+  const corp = lead.clientType === 'Corporation'
+  const ruleOn = (id) => state.feeRules.find((r) => r.id === id)?.on
+  const [sel, setSel] = useState(() => defaultFeeSelection(lead.type, state.feeItems, { corporate: corp && ruleOn('r1') }))
+  const bases = state.feeItems.filter((i) => i.kind === 'base' && i.type === lead.type)
+  const fees = computeFees(sel, state.feeItems)
+  const setQty = (id, v) => setSel({ ...sel, qty: { ...sel.qty, [id]: Math.max(0, Number(v) || 0) } })
+  const tpl = state.templates.find((t) => t.name === (corp ? 'Mini-mandate · Corporation' : `Mini-mandate · ${lead.type === 'Refinance' ? 'Refinance' : lead.type === 'Sale' ? 'Seller' : 'Buyer'}`))
+  const addr = lead.property.split(',')[0]
+  const fill = (txt) => (txt ?? '')
+    .replaceAll('{{client}}', lead.name.split(' ')[0]).replaceAll('{{adresse}}', addr).replaceAll('{{address}}', addr)
     .replaceAll('{{total}}', money(fees.total, lang))
     .replaceAll('{{lien}}', '[Accepter et ouvrir mon dossier]').replaceAll('{{link}}', '[Accept and open my file]')
     .replaceAll('{{signature}}', 'Nathalie Roy, parajuriste · Étude Dubois Notaires')
@@ -243,24 +255,29 @@ function MandateModal({ lead, onClose }) {
   return (
     <Modal title="Send mini-mandate" onClose={onClose} wide>
       <div className="split" style={{ gap: 16 }}>
-        <div className="side stack" style={{ flexBasis: 260 }}>
-          <label className="field"><span>Transaction</span><select className="select" value={o.type} onChange={(e) => setO({ ...o, type: e.target.value })}><option>Purchase</option><option>Sale</option><option>Refinance</option></select></label>
-          <label className="field"><span>Parties</span><input className="input" type="number" min="1" max="6" value={o.parties} onChange={(e) => setO({ ...o, parties: e.target.value })} /></label>
-          <label className="check"><input type="checkbox" checked={o.remote} onChange={(e) => setO({ ...o, remote: e.target.checked })} /> Remote signing</label>
-          <label className="check"><input type="checkbox" checked={o.rush} onChange={(e) => setO({ ...o, rush: e.target.checked })} /> Rush</label>
+        <div className="side stack" style={{ flexBasis: 280 }}>
+          <label className="field"><span>Published price ({lead.type})</span>
+            <select className="select" value={sel.base} onChange={(e) => setSel({ ...sel, base: e.target.value })}>{bases.map((b) => <option key={b.id} value={b.id}>{b.label} · {money(b.amount)}</option>)}</select>
+          </label>
+          {state.feeItems.filter((i) => i.kind === 'unit').map((i) => (
+            <label key={i.id} className="row small" style={{ justifyContent: 'space-between' }}>{i.label}<input className="input" type="number" min="0" max="9" style={{ width: 70, minHeight: 32 }} value={sel.qty[i.id] ?? 0} onChange={(e) => setQty(i.id, e.target.value)} /></label>
+          ))}
+          {state.feeItems.filter((i) => i.kind === 'option').map((i) => (
+            <label key={i.id} className="check small" style={{ minHeight: 30 }}><input type="checkbox" checked={(sel.qty[i.id] ?? 0) > 0} onChange={(e) => setQty(i.id, e.target.checked ? 1 : 0)} /> {i.label}</label>
+          ))}
           <div className="quote-box">
             <span className="small muted">Quote (taxes + disbursements incl.)</span>
             <b style={{ fontSize: 22 }}>{money(fees.total)}</b>
-            <span className="small muted">From Settings → Fee table</span>
+            <span className="small muted">{fees.deposit ? 'Private lender: deposit required · ' : ''}From Settings → Fee table</span>
           </div>
         </div>
         <div className="main stack">
           <div className="row between">
-            <span className="small muted">To: <b>{lead.name}</b> &lt;{lead.email}&gt;</span>
+            <span className="small muted">To: <b>{lead.name}</b> &lt;{lead.email}&gt;{corp && <Badge tone="purple">Corporation</Badge>}</span>
             <div className="seg light"><button className={lang === 'FR' ? 'on' : ''} onClick={() => setLang('FR')}>FR</button><button className={lang === 'EN' ? 'on' : ''} onClick={() => setLang('EN')}>EN</button></div>
           </div>
-          <div className="small"><b>Subject:</b> {tpl?.subject[lang]}</div>
-          <pre className="email-preview">{body}</pre>
+          <div className="small"><b>Subject:</b> {fill(tpl?.subject[lang])}</div>
+          <pre className="email-preview">{fill(tpl?.body[lang])}</pre>
         </div>
       </div>
       <div className="row" style={{ justifyContent: 'flex-end' }}>

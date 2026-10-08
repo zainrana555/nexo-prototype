@@ -13,6 +13,8 @@ import Calendar from './pages/staff/Calendar'
 import Templates from './pages/staff/Templates'
 import Automations from './pages/staff/Automations'
 import Settings from './pages/staff/Settings'
+import Fax from './pages/staff/Fax'
+import Banking from './pages/staff/Banking'
 import Inbox from './pages/client/Inbox'
 import Mandate from './pages/client/Mandate'
 import Intake from './pages/client/Intake'
@@ -42,6 +44,8 @@ createRoot(document.getElementById('root')).render(
             <Route path="templates" element={<Templates />} />
             <Route path="automations" element={<Automations />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="fax" element={<Fax />} />
+            <Route path="banking" element={<Banking />} />
           </Route>
           <Route path="/client" element={<ClientLayout />}>
             <Route index element={<Inbox />} />

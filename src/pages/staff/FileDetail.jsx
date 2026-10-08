@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Mail, Lock, Copy, Upload, Send, Check, X, Landmark, CalendarDays, FileText, Download, ShieldCheck, ArrowRight, Printer, TriangleAlert, CircleCheck, Video, CalendarClock } from 'lucide-react'
+import { Mail, Lock, Copy, Upload, Send, Check, X, Landmark, CalendarDays, FileText, Download, ShieldCheck, ArrowRight, Printer, TriangleAlert, CircleCheck, Video, CalendarClock, ExternalLink, Printer as Fax, Maximize2, Building2 } from 'lucide-react'
 import { useStore } from '../../store'
 import { PageHeader, Badge, Tabs, Modal, Progress, Avatar } from '../../ui'
-import { STAGES, stageInfo, stepDone, bookingUnlocked, computeFees, money, fmtDate, isExpired, validIds, isClosed } from '../../logic'
-import { addDays, STAFF, canAssign } from '../../data'
+import { STAGES, stageInfo, stepDone, bookingUnlocked, computeFees, defaultFeeSelection, money, fmtDate, isExpired, validIds, isClosed, can, contractOverdue, TITLE_ITEMS } from '../../logic'
+import { addDays, STAFF } from '../../data'
+import { Composer, composerFields, IdViewer } from '../../Shared'
 import { appointments } from '../../availability'
 import { EventModal, BookModal } from './Calendar'
 
@@ -24,13 +25,15 @@ export default function FileDetail() {
     <>
       <PageHeader
         crumbs={[{ label: 'Files', to: '/app/files' }, { label: file.id }]}
-        title={`${file.clients.join(' & ')}`}
+        title={<>{file.clients.join(' & ')}{file.clientType === 'Corporation' && <> <Badge tone="purple">Corporation</Badge></>}</>}
         sub={`${file.id} · ${file.type} · ${file.addr}, ${file.city} · Notary: ${file.notary}`}
         actions={<>
           {file.isDemo && <Link className="btn" to="/client"><Mail size={16} /> Client view</Link>}
+          <button className="btn" onClick={() => setModal('compose')}><Mail size={16} /> Email or text client</button>
           {!isClosed(file) && <button className="btn" onClick={() => { dispatch({ type: 'file/reminder', id }); notify('Reminder emailed to client') }}><Send size={16} /> Send reminder</button>}
         </>}
       />
+      {contractOverdue(file) && <p className="banner warn row" style={{ gap: 6 }}><TriangleAlert size={15} /> Service contract sent {file.contract.sentAt} and still unsigned. The signature chase automation is running.</p>}
 
       <div className="card" style={{ padding: 0 }}>
         <ol className="stages" aria-label="Workflow">
@@ -62,6 +65,8 @@ export default function FileDetail() {
         <section className="card"><div className="timeline">{file.log.map((l, i) => <div key={i}><span className="small muted">{l.t} · {l.who}</span><div>{l.e}</div></div>)}</div></section>
       )}
       {modal === 'lender' && <LenderModal file={file} onClose={() => setModal(null)} />}
+      {modal === 'compose' && <Composer to={file.parties.map((p) => `${p.name} <${p.email}>`).join(', ')} lang={file.lang} fileId={file.id} onClose={() => setModal(null)}
+        fields={composerFields({ first: file.clients[0].split(' ')[0], address: file.addr, file: file.id, total: money(file.contract.total), notary: file.notary })} />}
     </>
   )
 }
@@ -70,7 +75,7 @@ function OverviewTab({ file, s, setTab, setModal }) {
   const { state, dispatch, notify } = useStore()
   const [appt, setAppt] = useState(null)
   const [bookFor, setBookFor] = useState(false)
-  const admin = canAssign(state.auth)
+  const admin = can(state, 'files.assign')
   const nav = useNavigate()
   const unlocked = bookingUnlocked(file)
   const action = {
@@ -130,6 +135,11 @@ function OverviewTab({ file, s, setTab, setModal }) {
             )}
           </section>
         </div>
+        <section className="card stack" style={{ gap: 8 }}>
+          <div className="row between"><h2 className="row" style={{ gap: 6 }}><Landmark size={16} /> Funds for signing</h2>{file.funds?.received ? <Badge tone="ok">Received</Badge> : file.funds?.requested ? <Badge tone="blue">Requested</Badge> : <Badge>Not requested</Badge>}</div>
+          <p className="small muted">Fees are paid at closing from the disbursements; a deposit is needed only for private-lending files. Trust reconciliation stays manual.</p>
+          {file.type !== 'Sale' && !file.funds?.requested && <button className="btn" style={{ alignSelf: 'flex-start' }} disabled={!file.contract.signed} onClick={() => { dispatch({ type: 'funds/request', id: file.id, amount: file.contract.total, amountLabel: money(file.contract.total) }); notify('Funds request emailed to client') }}><Send size={15} /> Send funds request</button>}
+        </section>
       </div>
       <aside className="side stack-lg">
         <section className="card stack" style={{ gap: 8 }}>
@@ -168,9 +178,14 @@ function OverviewTab({ file, s, setTab, setModal }) {
 }
 
 function PartiesTab({ file }) {
-  const { dispatch, notify } = useStore()
+  const { state, dispatch, notify } = useStore()
+  const [view, setView] = useState(null)
+  const canReview = can(state, 'ids.review')
+  const decide = (p, i, d, decision) => { dispatch({ type: 'id/review', id: file.id, party: p.name, idx: i, decision, docType: d.type }); notify(`${d.type} ${decision}`) }
+  const LABELS = { role: 'Role', clientType: 'Client type', corporation: 'Corporation', neq: 'NEQ', signingOfficer: 'Signing officer', spouse: 'Spouse', property: 'Property', lender: 'Lender', seller: 'Seller', currentLender: 'Current lender', rented: 'Rented', utilityCaptures: 'Utility balance captures' }
   return (
     <div className="grid-2">
+      {view && <IdViewer doc={view.d} party={view.p} onClose={() => setView(null)} onDecide={canReview ? (dec) => decide(view.p, view.i, view.d, dec) : null} />}
       {file.parties.map((p) => {
         const approved = validIds(p).filter((d) => d.review === 'approved').length
         return (
@@ -187,12 +202,12 @@ function PartiesTab({ file }) {
               const exp = isExpired(d.exp)
               return (
                 <div key={i} className={'id-row' + (exp ? ' bad' : '')}>
-                  <div className="id-thumb" aria-hidden="true" />
-                  <div className="grow"><b>{d.type}</b><div className={'small ' + (exp ? 'warn' : 'muted')}>{exp ? `Expired ${d.exp}` : `Valid to ${d.exp}`}</div></div>
-                  {exp ? <Badge tone="bad">Expired</Badge> : d.review === 'pending' ? (
+                  <button className="id-thumb two as-btn" aria-label={`View ${d.type} full screen`} onClick={() => setView({ d, p, i })}><span /><span /><Maximize2 size={12} className="zoom-ico" /></button>
+                  <div className="grow"><b>{d.type}</b><div className={'small ' + (exp ? 'warn' : 'muted')}>{exp ? `Expired ${d.exp}` : `Valid to ${d.exp}`} · front + back</div></div>
+                  {exp ? <Badge tone="bad">Expired</Badge> : d.review === 'pending' && canReview ? (
                     <div className="row" style={{ gap: 4 }}>
-                      <button className="icon-btn ok" aria-label="Approve" onClick={() => { dispatch({ type: 'id/review', id: file.id, party: p.name, idx: i, decision: 'approved', docType: d.type }); notify(`${d.type} approved`) }}><Check size={16} /></button>
-                      <button className="icon-btn bad" aria-label="Reject" onClick={() => { dispatch({ type: 'id/review', id: file.id, party: p.name, idx: i, decision: 'rejected', docType: d.type }); notify(`${d.type} rejected · re-upload requested`) }}><X size={16} /></button>
+                      <button className="icon-btn ok" aria-label="Approve" onClick={() => decide(p, i, d, 'approved')}><Check size={16} /></button>
+                      <button className="icon-btn bad" aria-label="Reject" onClick={() => decide(p, i, d, 'rejected')}><X size={16} /></button>
                     </div>
                   ) : <Badge>{d.review}</Badge>}
                 </div>
@@ -200,6 +215,15 @@ function PartiesTab({ file }) {
             })}
             {validIds(p).length < 2 && (
               <button className="btn" onClick={() => { dispatch({ type: 'file/log', id: file.id, e: `Requested valid photo ID from ${p.name}` }); notify(`Re-upload request sent to ${p.name}`) }}>Request new ID</button>
+            )}
+            {p.answers && (
+              <details className="answers">
+                <summary>Questionnaire answers</summary>
+                {Object.entries(p.answers).filter(([, v]) => v !== null && v !== '' && !(Array.isArray(v) && !v.length)).map(([k, v]) => (
+                  <div key={k} className="kv small"><span className="muted">{LABELS[k] ?? (k === 'mortgagesToDischarge' ? 'Mortgages to discharge' : k)}</span>
+                    <span>{Array.isArray(v) ? v.map((m) => `${m.lender}${m.account ? ` #${m.account}` : ''}`).join('; ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)}</span></div>
+                ))}
+              </details>
             )}
           </section>
         )
@@ -210,42 +234,55 @@ function PartiesTab({ file }) {
 
 function ContractTab({ file }) {
   const { state, dispatch, notify } = useStore()
-  const [o, setO] = useState(file.contract.options ?? { type: file.type, parties: file.parties.length, mortgages: file.type === 'Sale' ? 1 : 0, remote: file.parties.some((p) => p.liveness === 'Passed'), rush: false, lang: file.lang })
+  const items = state.feeItems
+  const seller = file.parties.find((p) => p.answers?.mortgagesToDischarge)
+  const [o, setO] = useState(() => file.contract.options?.sel ? file.contract.options : {
+    lang: file.lang,
+    sel: defaultFeeSelection(file.type, items, { parties: file.parties.length, mortgages: seller?.answers.mortgagesToDischarge.length ?? (file.type === 'Sale' ? 1 : 0), remote: file.parties.some((p) => p.liveness === 'Passed'), corporate: file.clientType === 'Corporation' }),
+  })
   const [confirm, setConfirm] = useState(false)
-  const fees = computeFees(o, state.rates)
+  const fees = computeFees(o.sel, items)
   const fr = o.lang === 'FR'
-  const lines = [['Professional fees', fees.professional], o.remote && ['Remote signing', fees.remoteFee], o.rush && ['Rush file', fees.rushFee], fees.dischargeFee > 0 && [`Mortgage discharge × ${o.mortgages}`, fees.dischargeFee], ['GST 5%', fees.gst], ['QST 9.975%', fees.qst], ['Disbursements', fees.disbursements]].filter(Boolean)
   const locked = file.contract.sent
-  const set = (k) => (e) => setO({ ...o, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+  const setQty = (id, v) => setO({ ...o, sel: { ...o.sel, qty: { ...o.sel.qty, [id]: Math.max(0, Number(v) || 0) } } })
+  const bases = items.filter((x) => x.kind === 'base' && x.type === file.type)
 
   return (
     <>
       {file.contract.signed && <p className="banner ok row" style={{ gap: 6 }}><CircleCheck size={16} /> Signed electronically by {file.contract.signedBy ?? file.clients.join(' & ')}.</p>}
       {file.contract.sent && !file.contract.signed && (
         <div className="banner info row between">
-          <span>Out for e-signature with {file.clients.join(' & ')}. Automatic reminder after 3 days.</span>
+          <span>Out for e-signature with {file.clients.join(' & ')} since {file.contract.sentAt ?? 'today'}. Automatic reminder after 3 days.</span>
           {file.isDemo ? <Link to="/client">Open Émilie’s inbox to sign →</Link> : <button className="btn btn-sm" onClick={() => { dispatch({ type: 'contract/sign', id: file.id, signer: file.clients[0] }); notify('Simulated client signature') }}>Simulate signature</button>}
         </div>
       )}
       <div className="split">
-        <section className="card stack side" style={{ flexBasis: 360 }}>
-          <h2>Fee calculator</h2>
-          <fieldset disabled={locked} className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
-            <div className="grid-2">
-              <label className="field"><span>Transaction</span><select className="select" value={o.type} onChange={set('type')}><option>Purchase</option><option>Sale</option><option>Refinance</option></select></label>
-              <label className="field"><span>Parties</span><input className="input" type="number" min="1" max="6" value={o.parties} onChange={set('parties')} /></label>
-              <label className="field"><span>Contract language</span><select className="select" value={o.lang} onChange={set('lang')}><option value="FR">Français</option><option value="EN">English</option></select></label>
-              <label className="field"><span>Mortgage</span><input className="input" value={file.mortgage ? money(file.mortgage) : 'From lender'} readOnly /></label>
-            </div>
-            <label className="check"><input type="checkbox" checked={o.remote} onChange={set('remote')} /> Remote signing</label>
-            <label className="check"><input type="checkbox" checked={o.rush} onChange={set('rush')} /> Rush file</label>
-            <label className="field"><span>Existing mortgages to discharge</span><input className="input" type="number" min="0" max="5" value={o.mortgages ?? 0} onChange={set('mortgages')} /></label>
+        <section className="card stack side" style={{ flexBasis: 380 }}>
+          <h2>Fees</h2>
+          <fieldset disabled={locked} className="stack" style={{ border: 0, padding: 0, margin: 0, gap: 8 }}>
+            <label className="field"><span>Published price ({file.type})</span>
+              <select className="select" value={o.sel.base} onChange={(e) => setO({ ...o, sel: { ...o.sel, base: e.target.value } })}>{bases.map((b) => <option key={b.id} value={b.id}>{b.label} · {money(b.amount)}</option>)}</select>
+            </label>
+            {items.filter((x) => x.kind === 'unit').map((x) => (
+              <label key={x.id} className="row small" style={{ justifyContent: 'space-between' }}>{x.label} ({money(x.amount)} each)<input className="input" type="number" min="0" max="9" style={{ width: 70, minHeight: 32 }} value={o.sel.qty[x.id] ?? 0} onChange={(e) => setQty(x.id, e.target.value)} /></label>
+            ))}
+            {items.filter((x) => x.kind === 'option').map((x) => (
+              <label key={x.id} className="check small" style={{ minHeight: 28 }}><input type="checkbox" checked={(o.sel.qty[x.id] ?? 0) > 0} onChange={(e) => setQty(x.id, e.target.checked ? 1 : 0)} /> {x.label} · {money(x.amount)}</label>
+            ))}
+            <span className="small muted" style={{ marginTop: 4 }}>Disbursements</span>
+            {items.filter((x) => x.kind === 'disbursement').map((x) => (
+              <label key={x.id} className="check small" style={{ minHeight: 28 }}><input type="checkbox" checked={(o.sel.qty[x.id] ?? 0) > 0} onChange={(e) => setQty(x.id, e.target.checked ? 1 : 0)} /> {x.label} · {money(x.amount)} <span className="muted">({x.taxable ? 'taxable' : 'non-taxable'})</span></label>
+            ))}
+            <label className="field"><span>Contract language</span><select className="select" value={o.lang} onChange={(e) => setO({ ...o, lang: e.target.value })}><option value="FR">Français</option><option value="EN">English</option></select></label>
           </fieldset>
-          <div className="stack" style={{ borderTop: '1px solid var(--line-soft)', paddingTop: 12, gap: 6 }}>
-            {lines.map(([k, v]) => <div key={k} className="kv"><span>{k}</span><span className="mono">{money(v)}</span></div>)}
+          <div className="stack" style={{ borderTop: '1px solid var(--line-soft)', paddingTop: 12, gap: 4 }}>
+            {fees.lines.map((l) => <div key={l.id} className="kv small"><span>{l.label}{l.qty > 1 ? ` ×${l.qty}` : ''}</span><span className="mono">{money(l.amount)}</span></div>)}
+            <div className="kv small muted"><span>GST 5% (on {money(fees.taxableSub)})</span><span className="mono">{money(fees.gst)}</span></div>
+            <div className="kv small muted"><span>QST 9.975%</span><span className="mono">{money(fees.qst)}</span></div>
             <div className="kv total"><span>Total</span><span className="mono">{money(fees.total)}</span></div>
+            {fees.deposit && <span className="badge warn" style={{ alignSelf: 'flex-start' }}>Private lender: deposit required before signing</span>}
           </div>
-          <p className="small muted">Rates from <Link to="/app/settings?tab=fees">Settings → Fee table</Link>.</p>
+          <p className="small muted">Prices and rules from <Link to="/app/settings?tab=fees">Settings → Fee table</Link>.</p>
           {!locked && <button className="btn btn-primary" onClick={() => setConfirm(true)}><Send size={16} /> Send for e-signature</button>}
           <button className="btn" onClick={() => window.print()}><Printer size={16} /> Print / PDF</button>
         </section>
@@ -253,15 +290,15 @@ function ContractTab({ file }) {
         <section className="card main" style={{ padding: 0 }}>
           <div className="row between" style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)' }}>
             <b>{fr ? 'Convention de services professionnels' : 'Professional Services Agreement'}</b>
-            <span className="small muted">Template: Service contract · {o.type}</span>
+            <span className="small muted">Template: Service contract · {file.type}</span>
           </div>
           <div className="contract-paper">
             <div className="row between"><Logo2 /><span className="small muted">{fr ? 'Dossier' : 'File'} {file.id}</span></div>
             <h3 style={{ textAlign: 'center', fontSize: 18 }}>{fr ? 'CONVENTION DE SERVICES PROFESSIONNELS' : 'PROFESSIONAL SERVICES AGREEMENT'}</h3>
             <p>{fr ? 'ENTRE : ' : 'BETWEEN: '}<b>Étude Dubois Notaires inc.</b>{fr ? ', représentée par ' : ', represented by '}{file.notary}</p>
             <p>{fr ? 'ET : ' : 'AND: '}{file.clients.map((n, i) => <span key={n}>{i > 0 && (fr ? ' et ' : ' and ')}<span className="fill">{n}</span></span>)}</p>
-            <p><b>1. {fr ? 'Mandat' : 'Mandate'}.</b> {fr ? 'Le client retient les services du notaire pour ' : 'The client retains the notary for '}<span className="fill">{{ Purchase: fr ? 'l’achat et l’hypothèque' : 'the purchase and mortgage', Sale: fr ? 'la vente' : 'the sale', Refinance: fr ? 'le refinancement hypothécaire' : 'the mortgage refinance' }[o.type]}</span>{fr ? ' de l’immeuble situé au ' : ' of the property at '}<span className="fill">{file.addr}, {file.city}</span>.</p>
-            <p><b>2. {fr ? 'Honoraires' : 'Fees'}.</b> {fr ? 'Honoraires et débours totaux de ' : 'Total fees and disbursements of '}<span className="fill">{money(fees.total)}</span>{fr ? ', taxes incluses, payables par virement ou traite bancaire avant la signature.' : ', taxes included, payable by wire transfer or bank draft before signing.'}</p>
+            <p><b>1. {fr ? 'Mandat' : 'Mandate'}.</b> {fr ? 'Le client retient les services du notaire pour ' : 'The client retains the notary for '}<span className="fill">{{ Purchase: fr ? 'l’achat et l’hypothèque' : 'the purchase and mortgage', Sale: fr ? 'la vente' : 'the sale', Refinance: fr ? 'le refinancement hypothécaire' : 'the mortgage refinance' }[file.type]}</span>{fr ? ' de l’immeuble situé au ' : ' of the property at '}<span className="fill">{file.addr}, {file.city}</span>.</p>
+            <p><b>2. {fr ? 'Honoraires' : 'Fees'}.</b> {fr ? 'Honoraires et débours totaux de ' : 'Total fees and disbursements of '}<span className="fill">{money(fees.total)}</span>{fr ? ', taxes incluses, payables à la signature à même les déboursés' : ', taxes included, payable at closing from the disbursements'}{fees.deposit ? (fr ? ' (un dépôt est exigé à l’ouverture du dossier, prêt privé).' : ' (a deposit is required when the file is opened: private lender).') : '.'}</p>
             <p><b>3. {fr ? 'Documents' : 'Documents'}.</b> {fr ? 'Le client fournit deux pièces d’identité valides et tout document demandé.' : 'The client provides two valid IDs and any requested document.'}</p>
             <div className="ghost-line" style={{ width: '92%' }} /><div className="ghost-line" style={{ width: '84%' }} />
             <div className="grid-2" style={{ gap: 28, marginTop: 24 }}>
@@ -294,7 +331,6 @@ const Logo2 = () => <b style={{ fontFamily: 'var(--sans)', color: 'var(--navy)' 
 
 function ClosingTab({ file }) {
   const { dispatch, notify } = useStore()
-  const titleItems = [['deeds10', '10-year deed review'], ['chain30', '30-year mortgage chain check'], ['cadastre', 'Cadastre & servitudes check']]
   const summary = [
     `Dossier: ${file.id}`, `Type: ${file.type}`, `Client(s): ${file.clients.join(', ')}`, `Immeuble: ${file.addr}, ${file.city}`,
     `Prêteur: ${file.lender}${file.mortgage ? ` · ${money(file.mortgage)}` : ''}`, `Signature: ${file.booking ? `${file.booking.date} ${file.booking.time}` : '—'}`,
@@ -315,8 +351,8 @@ function ClosingTab({ file }) {
     <div className="grid-2">
       <section className="card stack">
         <div className="row between"><h2>1 · Title search</h2>{stepDone(file, 'title') ? <Badge tone="ok">Complete</Badge> : <Badge tone="warn">To do</Badge>}</div>
-        <p className="small muted">Done by a paralegal in the Registre foncier portal; tick off each check.</p>
-        {titleItems.map(([k, l]) => (
+        <p className="small muted">Done by a paralegal in the Registre foncier and municipal portals; tick off each search. Registry automation will plug in here if an API is confirmed.</p>
+        {TITLE_ITEMS.map(([k, l]) => (
           <label key={k} className="check"><input type="checkbox" checked={file.title[k]} onChange={() => dispatch({ type: 'title/toggle', id: file.id, key: k })} /> {l}</label>
         ))}
         <a className="small" href="https://www.registrefoncier.gouv.qc.ca" target="_blank" rel="noreferrer">Open Registre foncier ↗</a>
@@ -327,6 +363,7 @@ function ClosingTab({ file }) {
         <div className="kv"><span className="muted">Appointment</span><span>{file.booking ? `${fmtDate(file.booking.date)} · ${file.booking.time} · ${file.booking.mode}` : 'Not booked yet'}</span></div>
         <label className="check"><input type="checkbox" disabled={!canSign} checked={file.closing.consigno} onChange={() => dispatch({ type: 'closing/toggle', id: file.id, key: 'consigno', label: 'Deed signed in Consigno' })} /> Deed signed in Consigno</label>
         <label className="check"><input type="checkbox" disabled={!canSign} checked={file.closing.lenderReport} onChange={() => dispatch({ type: 'closing/toggle', id: file.id, key: 'lenderReport', label: 'Final report sent to lender' })} /> Final report sent to lender</label>
+        <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => notify('Opening Consigno: signed in through the secure tunnel (demo)')}><ExternalLink size={14} /> Open in Consigno</button>
         {!canSign && <p className="small muted row" style={{ gap: 6 }}><Lock size={13} /> Available once {!stepDone(file, 'title') ? 'the title search is complete' : ''}{!stepDone(file, 'title') && !file.booking ? ' and ' : ''}{!file.booking ? 'the signing is booked' : ''}.</p>}
       </section>
 
@@ -358,8 +395,9 @@ function ClosingTab({ file }) {
 }
 
 function DocumentsTab({ file }) {
-  const { notify } = useStore()
+  const { state, notify } = useStore()
   const docs = [
+    ...state.faxes.filter((x) => x.fileId === file.id && x.status === 'routed').map((x) => ({ name: `${x.docType} (fax, ${x.pages} p.) – ${x.sender}`, cat: 'Fax', by: x.routedBy ? `Routed by ${x.routedBy}` : 'Routed by AI', status: 'received' })),
     ...file.parties.flatMap((p) => p.ids.map((d) => ({ name: `${d.type} – ${p.name}`, cat: 'Identity', by: p.name, status: d.review }))),
     file.contract.sent && { name: `Service contract (${file.contract.lang})`, cat: 'Contract', by: 'Nexo', status: file.contract.signed ? 'signed' : 'sent' },
     file.bankReceived && { name: `Lender instructions – ${file.lender}`, cat: 'Lender', by: 'Lender portal', status: 'received' },
@@ -373,7 +411,7 @@ function DocumentsTab({ file }) {
           <tbody>
             {docs.map((d, i) => (
               <tr key={i} style={{ cursor: 'default' }}>
-                <td className="row" style={{ gap: 8 }}>{d.cat === 'Identity' ? <ShieldCheck size={16} /> : <FileText size={16} />}<b>{d.name}</b></td>
+                <td className="row" style={{ gap: 8 }}>{d.cat === 'Identity' ? <ShieldCheck size={16} /> : d.cat === 'Fax' ? <Fax size={16} /> : <FileText size={16} />}<b>{d.name}</b></td>
                 <td>{d.cat}</td><td className="muted">{d.by}</td><td><Badge tone={['approved', 'signed', 'received', 'published'].includes(d.status) ? 'ok' : d.status === 'rejected' ? 'bad' : 'warn'}>{d.status}</Badge></td>
                 <td><button className="icon-btn" aria-label={`Download ${d.name}`} onClick={() => notify(`Downloading ${d.name} (demo)`)}><Download size={16} /></button></td>
               </tr>

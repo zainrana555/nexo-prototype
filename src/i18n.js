@@ -27,7 +27,7 @@ const S = {
   mWhatList: { fr: ['Vérification des titres (registre foncier)', 'Préparation et signature de l’acte de vente et de l’hypothèque', 'Coordination avec votre banque', 'Remise des documents finaux en ligne'], en: ['Title search (land registry)', 'Preparation and signing of the deed of sale and mortgage', 'Coordination with your bank', 'Online delivery of final documents'] },
   mDocs: { fr: 'Documents à prévoir', en: 'Documents you’ll need' },
   mDocsList: { fr: ['Deux pièces d’identité couleur avec photo (passeport, permis de conduire ou carte d’assurance maladie)', 'Votre adresse actuelle et votre état civil', 'Les coordonnées du vendeur', 'Votre assureur habitation (la banque doit y figurer comme créancier)'], en: ['Two colour photo IDs (passport, driver’s licence or health card)', 'Your current address and marital status', 'The seller’s contact details', 'Your home insurer (the bank must be listed as creditor)'] },
-  mPay: { fr: 'Paiement par virement ou traite bancaire avant la signature. Aucune carte de crédit.', en: 'Payment by wire transfer or bank draft before signing. No credit cards.' },
+  mPay: { fr: 'Les honoraires sont payés à la signature, à même les déboursés. Un dépôt est requis seulement pour un prêt privé. Aucune carte de crédit.', en: 'Fees are paid at closing, from the disbursements. A deposit is required only for private-lending files. No credit cards.' },
   mAccept: { fr: 'Accepter et ouvrir mon dossier', en: 'Accept and open my file' },
   mQuestion: { fr: 'J’ai une question', en: 'I have a question' },
   mAccepted: { fr: 'Soumission acceptée. Votre dossier {id} est ouvert!', en: 'Quote accepted. Your file {id} is open!' },
@@ -43,7 +43,7 @@ const S = {
   dob: { fr: 'Date de naissance', en: 'Date of birth' },
   s1Title: { fr: 'Situation familiale', en: 'Family situation' },
   marital: { fr: 'État civil', en: 'Marital status' },
-  maritalOpts: { fr: ['Célibataire', 'Marié(e)', 'Union civile', 'Conjoint(e) de fait', 'Divorcé(e)', 'Veuf/veuve'], en: ['Single', 'Married', 'Civil union', 'Common-law', 'Divorced', 'Widowed'] },
+  maritalOpts: { fr: ['Célibataire', 'Marié(e) – société d’acquêts (sans contrat)', 'Marié(e) – séparation de biens', 'Marié(e) – autre contrat de mariage', 'Union civile', 'Conjoint(e) de fait', 'Séparé(e)', 'Divorcé(e)', 'Veuf / veuve'], en: ['Single', 'Married – partnership of acquests (no contract)', 'Married – separation of property', 'Married – other marriage contract', 'Civil union', 'Common-law', 'Separated', 'Divorced', 'Widowed'] },
   regime: { fr: 'Régime matrimonial', en: 'Matrimonial regime' },
   regimeOpts: { fr: ['Société d’acquêts', 'Séparation de biens', 'Communauté de biens', 'Je ne sais pas'], en: ['Partnership of acquests', 'Separation of property', 'Community of property', 'I don’t know'] },
   coParty: { fr: 'Achetez-vous avec une autre personne?', en: 'Are you buying with someone else?' },
@@ -178,6 +178,41 @@ const S = {
   cBook: { fr: 'Réserver', en: 'Book' },
   cBooked: { fr: 'Consultation réservée!', en: 'Consultation booked!' },
   cFirstFree: { fr: 'Première personne disponible', en: 'First available' },
+
+  // Questionnaire variants
+  qAs: { fr: 'Vous êtes', en: 'You are' },
+  qRole: { fr: 'Votre rôle', en: 'Your role' },
+  roleBuyer: { fr: 'Acheteur', en: 'Buyer' },
+  roleSeller: { fr: 'Vendeur', en: 'Seller' },
+  roleBorrower: { fr: 'Emprunteur (refinancement)', en: 'Borrower (refinance)' },
+  typeIndividual: { fr: 'Un particulier', en: 'An individual' },
+  typeCorporation: { fr: 'Une société', en: 'A corporation' },
+  coTitle: { fr: 'La société', en: 'The corporation' },
+  coName: { fr: 'Nom de la société', en: 'Corporation name' },
+  coNeq: { fr: 'NEQ (numéro d’entreprise du Québec)', en: 'NEQ (Quebec enterprise number)' },
+  coOfficer: { fr: 'Signataire autorisé', en: 'Authorized signing officer' },
+  coOfficerTitle: { fr: 'Titre du signataire', en: 'Signing officer’s title' },
+  coArticles: { fr: 'Statuts constitutifs / état du registre (PDF)', en: 'Articles / enterprise register extract (PDF)' },
+  coResolution: { fr: 'Résolution autorisant la transaction et le signataire', en: 'Resolution authorizing the transaction and the signing officer' },
+  coIdsNote: { fr: 'Les pièces d’identité demandées plus loin sont celles du signataire.', en: 'The IDs requested later are the signing officer’s.' },
+  spouse: { fr: 'Nom du conjoint', en: 'Spouse’s name' },
+  existingMortgages: { fr: 'Hypothèques existantes à rembourser', en: 'Existing mortgages to pay off' },
+  emNote: { fr: 'Nous commanderons les états de compte pour quittance.', en: 'We’ll order the payout statements.' },
+  emLender: { fr: 'Institution', en: 'Lender' },
+  emAccount: { fr: 'Numéro de compte / prêt', en: 'Account / loan number' },
+  emAdd: { fr: '+ Ajouter une hypothèque', en: '+ Add a mortgage' },
+  rented: { fr: 'La propriété est-elle louée?', en: 'Is the property rented?' },
+  leases: { fr: 'Baux en vigueur', en: 'Current leases' },
+  rentRoll: { fr: 'Liste des loyers (rent roll)', en: 'Rent roll' },
+  utilities: { fr: 'Soldes des comptes (Hydro-Québec, etc.)', en: 'Account balances (Hydro-Québec, etc.)' },
+  capture: { fr: 'Capturer l’écran de mon compte', en: 'Capture my account screen' },
+  captureHelp: { fr: 'Ouvrez votre compte en ligne dans un autre onglet, puis capturez-le ici. Ou téléversez une capture.', en: 'Open your online account in another tab, then capture it here. Or upload a screenshot.' },
+  captured: { fr: '✓ Capture ajoutée', en: '✓ Capture added' },
+  currentLender: { fr: 'Prêteur actuel', en: 'Current lender' },
+  newLender: { fr: 'Nouveau prêteur', en: 'New lender' },
+  idFront: { fr: 'Recto (couleur)', en: 'Front (colour)' },
+  idBack: { fr: 'Verso (couleur)', en: 'Back (colour)' },
+  previewAs: { fr: 'Démo : afficher le questionnaire pour', en: 'Demo: show questionnaire as' },
 }
 
 export function t(lang, key, vars) {
@@ -206,6 +241,12 @@ export function emailContent(kind, lang, ctx) {
     ctx.teams ? `🔗 ${ctx.teams}` : null,
   ].filter(Boolean).join('\n') : ''
   const E = {
+    custom: { subject: ctx.subject ?? '', body: ctx.body ?? '' },
+    funds: {
+      subject: fr ? 'Fonds requis pour la signature' : 'Funds required for signing',
+      body: fr ? `${hi}\n\nVotre signature approche. Voici le montant à prévoir : ${ctx.amount ?? ''}.\n\n• Par virement ou coupon bancaire (Atlas) au compte en fidéicommis de l’étude\n• Avec une preuve d’assurance habitation indiquant votre banque comme créancier\n\nPour votre sécurité, nos coordonnées bancaires ne sont jamais envoyées par courriel : appelez-nous au 514-555-0100 pour les obtenir.\n\n${sig}` : `${hi}\n\nYour signing is coming up. Here is the amount to provide: ${ctx.amount ?? ''}.\n\n• By wire transfer or bank coupon (Atlas) to the firm’s trust account\n• With proof of home insurance naming your bank as creditor\n\nFor your security, our banking details are never sent by email: call us at 514-555-0100 to get them.\n\n${sig}`,
+      cta: fr ? 'Voir mon dossier' : 'View my file', to: '/client/file',
+    },
     ack: {
       subject: fr ? 'Nous avons bien reçu votre demande' : 'We received your inquiry',
       body: fr ? `${hi}\n\nMerci d’avoir communiqué avec Étude Dubois Notaires. Une parajuriste vous fera parvenir une soumission personnalisée sous peu (habituellement en moins de 24 heures).\n\nVous préférez en parler? Réservez une courte consultation gratuite, par téléphone, Teams ou à l’étude.\n\n${sig}` : `${hi}\n\nThank you for contacting Étude Dubois Notaires. A paralegal will send you a personalized quote shortly (usually within 24 hours).\n\nPrefer to talk first? Book a short free consultation by phone, Teams or at the office.\n\n${sig}`,
@@ -272,5 +313,9 @@ export function emailContent(kind, lang, ctx) {
       cta: fr ? 'Télécharger mes documents' : 'Download my documents', to: '/client/portal',
     },
   }
-  return E[kind]
+  const out = E[kind]
+  // The property address always appears in the subject line (firm convention).
+  const addr = ctx.addr?.split(',')[0]
+  if (out && addr && kind !== 'custom' && !out.subject.includes(addr)) return { ...out, subject: `${out.subject} – ${addr}` }
+  return out
 }

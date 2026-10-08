@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Inbox, FolderOpen, Clock, CalendarDays, TriangleAlert } from 'lucide-react'
 import { useStore } from '../../store'
@@ -10,7 +11,10 @@ export default function Overview() {
   const nav = useNavigate()
   const first = state.auth.name.replace(/^Me /, '').split(' ')[0]
   const active = state.files.filter((f) => !isClosed(f))
-  const tasks = active.map((f) => ({ f, s: stageInfo(f) })).filter(({ s }) => s.owner === 'Staff')
+  const [scope, setScope] = useState('mine')
+  const me = state.auth.name
+  const mine = (f) => f.notary === me || f.paralegal === me
+  const tasks = active.map((f) => ({ f, s: stageInfo(f) })).filter(({ f, s }) => s.owner === 'Staff' && (scope === 'all' || mine(f)))
   const waitingClient = active.filter((f) => stageInfo(f).owner === 'Client').length
   const signings = [
     ...state.files.filter((f) => f.booking && f.booking.date >= new Date().toISOString().slice(0, 10)).map((f) => ({ title: `Signing – ${f.clients.join(' & ')}`, date: f.booking.date, time: f.booking.time, mode: f.booking.mode, to: `/app/files/${f.id}` })),
@@ -44,7 +48,7 @@ export default function Overview() {
 
       <div className="split">
         <section className="card main">
-          <div className="card-head"><h2>My tasks</h2><span className="small muted">{tasks.length} files need staff action</span></div>
+          <div className="card-head"><h2>{scope === 'mine' ? 'My tasks' : 'Team tasks'}</h2><span className="row small muted">{tasks.length} need action <span className="seg light"><button className={scope === 'mine' ? 'on' : ''} onClick={() => setScope('mine')}>Mine</button><button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')}>Everyone</button></span></span></div>
           {tasks.length === 0 && <p className="muted">All caught up.</p>}
           {tasks.map(({ f, s }) => (
             <Link key={f.id} to={`/app/files/${f.id}?tab=${s.tab}`} className="task">

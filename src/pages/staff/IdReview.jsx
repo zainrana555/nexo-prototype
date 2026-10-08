@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom'
 import { Check, X, ShieldCheck, ScanFace, CircleCheck } from 'lucide-react'
 import { useStore } from '../../store'
 import { PageHeader, Badge, Tabs, Empty, Avatar } from '../../ui'
-import { isExpired } from '../../logic'
+import { isExpired, can } from '../../logic'
+import { IdViewer } from '../../Shared'
 
 export default function IdReview() {
   const { state, dispatch, notify } = useStore()
   const [tab, setTab] = useState('pending')
+  const [view, setView] = useState(null)
+  const canReview = can(state, 'ids.review')
   const items = state.files.flatMap((f) => f.parties.flatMap((p) => p.ids.map((d, idx) => ({ f, p, d, idx }))))
   const shown = items.filter(({ d }) => (tab === 'pending' ? d.review === 'pending' : tab === 'flagged' ? isExpired(d.exp) || d.review === 'rejected' : d.review === 'approved'))
   const groups = shown.reduce((acc, it) => { const k = it.f.id + it.p.name; (acc[k] ??= { f: it.f, p: it.p, docs: [] }).docs.push(it); return acc }, {})
@@ -18,6 +21,7 @@ export default function IdReview() {
 
   return (
     <>
+      {view && <IdViewer doc={view.d} party={view.p} onClose={() => setView(null)} onDecide={canReview ? (dec) => review(view, dec) : null} />}
       <PageHeader title="ID review" sub="IDs read automatically (expiry, name match, face check). Approve or reject each one." />
       <Tabs value={tab} onChange={setTab} tabs={[
         { key: 'pending', label: 'To review', count: items.filter((i) => i.d.review === 'pending').length },
@@ -39,7 +43,7 @@ export default function IdReview() {
                 const exp = isExpired(it.d.exp)
                 return (
                   <div key={it.idx} className={'id-review' + (exp ? ' bad' : '')}>
-                    <div className="id-image" aria-hidden="true"><span>{it.d.type}</span></div>
+                    <button className="id-image as-btn" onClick={() => setView(it)} aria-label={`View ${it.d.type} of ${it.p.name} full screen`}><span>{it.d.type} · front + back · click to enlarge</span></button>
                     <div className="stack" style={{ gap: 4 }}>
                       <b>{it.d.type}</b>
                       <span className="small"><span className="ok">✓</span> Document read automatically</span>
@@ -47,7 +51,7 @@ export default function IdReview() {
                       <span className={'small ' + (exp ? 'warn' : '')}>{exp ? '⚠' : <span className="ok">✓</span>} Expiry {it.d.exp}{exp ? ' (expired)' : ''}</span>
                     </div>
                     <div className="row" style={{ marginTop: 'auto' }}>
-                      {it.d.review === 'pending' && !exp ? (
+                      {it.d.review === 'pending' && !exp && canReview ? (
                         <>
                           <button className="btn btn-sm" onClick={() => review(it, 'rejected')}><X size={15} /> Reject</button>
                           <button className="btn btn-primary btn-sm" onClick={() => review(it, 'approved')}><Check size={15} /> Approve</button>

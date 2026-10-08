@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Inbox, FolderOpen, ShieldCheck, CalendarDays, FileText, Zap, Settings, Bell, Search, Plus,
-  LogOut, User, CircleCheck, Circle, CirclePlay, RotateCcw, X, Mail, ArrowRight,
+  LogOut, User, CircleCheck, Circle, CirclePlay, RotateCcw, X, Mail, ArrowRight, Printer, Landmark,
 } from 'lucide-react'
 import { useStore } from './store'
 import { Logo, Avatar, Modal } from './ui'
-import { demoSteps, isClosed } from './logic'
+import { demoSteps, isClosed, can } from './logic'
+import { accessOf } from './data'
 import { t } from './i18n'
 import { NewLeadModal } from './pages/staff/Leads'
 import { NewFileModal } from './pages/staff/Files'
@@ -86,9 +87,11 @@ export function AppLayout() {
     { to: '/app/leads', label: 'Leads', icon: Inbox, count: state.leads.filter((l) => l.status === 'New').length },
     { to: '/app/files', label: 'Files', icon: FolderOpen, count: state.files.filter((f) => !isClosed(f)).length, quiet: true },
     { to: '/app/id-review', label: 'ID review', icon: ShieldCheck, count: pendingIds },
+    { to: '/app/fax', label: 'Fax inbox', icon: Printer, count: state.faxes.filter((f) => f.status === 'review').length },
     { to: '/app/calendar', label: 'Calendar', icon: CalendarDays },
     { to: '/app/templates', label: 'Templates', icon: FileText },
     { to: '/app/automations', label: 'Automations', icon: Zap },
+    can(state, 'banking.view') && { to: '/app/banking', label: 'Banking', icon: Landmark },
     { to: '/app/settings', label: 'Settings', icon: Settings },
   ]
   return (
@@ -98,7 +101,7 @@ export function AppLayout() {
         <nav className="sidebar" aria-label="Main">
           <Link to="/app" className="brand"><Logo size={30} /><span className="brand-name">Nexo</span></Link>
           <div className="nav-group">
-            {nav.map((n) => (
+            {nav.filter(Boolean).map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
                 <n.icon size={18} /><span className="grow">{n.label}</span>
                 {!!n.count && <span className={'nav-count' + (n.quiet ? ' quiet' : '')}>{n.count}</span>}
@@ -109,7 +112,7 @@ export function AppLayout() {
           <div className="firm-card hide-sm">
             <div className="small muted">Firm</div>
             <b>Étude Dubois Notaires</b>
-            <div className="small muted">Montréal · FR / EN</div>
+            <div className="small muted">Workspace · Montréal · FR / EN</div>
           </div>
         </nav>
         <div className="main-col">
@@ -196,7 +199,7 @@ function TopBar() {
       <div className="pos">
         <button className="user-btn" onClick={() => setMenu(menu === 'user' ? null : 'user')} aria-label="Account menu">
           <Avatar name={state.auth.name} size={32} />
-          <span className="hide-sm" style={{ textAlign: 'left', lineHeight: 1.2 }}><b style={{ display: 'block', fontSize: 13 }}>{state.auth.name}</b><span className="small muted">{state.auth.role}</span></span>
+          <span className="hide-sm" style={{ textAlign: 'left', lineHeight: 1.2 }}><b style={{ display: 'block', fontSize: 13 }}>{state.auth.name}</b><span className="small muted">{state.auth.role} · {accessOf(state.auth)}</span></span>
         </button>
         {menu === 'user' && (
           <div className="dropdown" style={{ right: 0, width: 220 }}>

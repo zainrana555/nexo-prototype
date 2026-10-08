@@ -57,9 +57,9 @@ export default function Login() {
               Sign in with Microsoft
             </button>
             <div className="divider"><span>or</span></div>
-            <label className="field"><span>Work email</span>
+            <label className="field"><span>Demo user (choose a role to see permissions)</span>
               <select className="select" value={email} onChange={(e) => setEmail(e.target.value)}>
-                {STAFF.map((s) => <option key={s.email} value={s.email}>{s.email} ({s.role})</option>)}
+                {STAFF.map((s) => <option key={s.email} value={s.email}>{s.name} · {s.access}</option>)}
               </select>
             </label>
             <label className="field"><span>Password</span><input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
