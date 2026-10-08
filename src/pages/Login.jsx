@@ -6,10 +6,14 @@ import { Logo } from '../ui'
 import { DemoBar } from '../layouts'
 import { STAFF } from '../data'
 
+// The demo signs in as the Super admin by default (all permissions); other roles stay selectable.
+const DEFAULT_USER = STAFF.find((s) => s.access === 'Super admin') ?? STAFF[0]
+const USERS = [DEFAULT_USER, ...STAFF.filter((s) => s !== DEFAULT_USER)]
+
 export default function Login() {
   const { dispatch, notify } = useStore()
   const nav = useNavigate()
-  const [email, setEmail] = useState(STAFF[0].email)
+  const [email, setEmail] = useState(DEFAULT_USER.email)
   const [pw, setPw] = useState('demo-password')
   const [loading, setLoading] = useState(false)
 
@@ -17,7 +21,7 @@ export default function Login() {
     e?.preventDefault()
     setLoading(true)
     setTimeout(() => {
-      const user = STAFF.find((s) => s.email === email) ?? STAFF[0]
+      const user = STAFF.find((s) => s.email === email) ?? DEFAULT_USER
       dispatch({ type: 'login', user })
       notify(`Welcome back, ${user.name.replace(/^Me /, '').split(' ')[0]}`)
       nav('/app')
@@ -59,7 +63,7 @@ export default function Login() {
             <div className="divider"><span>or</span></div>
             <label className="field"><span>Demo user (choose a role to see permissions)</span>
               <select className="select" value={email} onChange={(e) => setEmail(e.target.value)}>
-                {STAFF.map((s) => <option key={s.email} value={s.email}>{s.name} · {s.access}</option>)}
+                {USERS.map((s) => <option key={s.email} value={s.email}>{s.name} · {s.access}</option>)}
               </select>
             </label>
             <label className="field"><span>Password</span><input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
