@@ -27,7 +27,7 @@ export function Composer({ onClose, to, lang = 'FR', fields, leadId, fileId }) {
       <div className="row between">
         <div className="seg light">
           <button className={!sms ? 'on' : ''} onClick={() => setChannel('email')}><Mail size={14} /> Email</button>
-          <button className={sms ? 'on' : ''} onClick={() => setChannel('sms')}><MessageSquare size={14} /> Text</button>
+          {state.edition !== 'core' && <button className={sms ? 'on' : ''} onClick={() => setChannel('sms')}><MessageSquare size={14} /> Text</button>}
         </div>
         <div className="seg light"><button className={L === 'FR' ? 'on' : ''} onClick={() => { setL('FR'); tplId && pick(tplId, 'FR') }}>FR</button><button className={L === 'EN' ? 'on' : ''} onClick={() => { setL('EN'); tplId && pick(tplId, 'EN') }}>EN</button></div>
       </div>

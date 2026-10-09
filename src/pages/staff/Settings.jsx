@@ -6,8 +6,11 @@ import { PageHeader, Tabs, Badge, Avatar, Modal, Switch } from '../../ui'
 import { INTEGRATIONS, TAX, PERMISSIONS, accessOf } from '../../data'
 import { VIRTUAL_BANKS, PRIVATE_LENDERS } from '../../firm'
 import { can } from '../../logic'
+import { has } from '../../editions'
+import { LockedNote } from '../../Locked'
 
 export default function Settings() {
+  const { state } = useStore()
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') ?? 'firm'
   return (
@@ -21,14 +24,14 @@ export default function Settings() {
       {tab === 'team' && <Team />}
       {tab === 'roles' && <Roles />}
       {tab === 'fees' && <Fees />}
-      {tab === 'integrations' && <Integrations />}
+      {tab === 'integrations' && (has(state, 'integrations') ? <Integrations /> : <LockedNote feature="integrations" />)}
       {tab === 'privacy' && <Privacy />}
     </>
   )
 }
 
 function Firm() {
-  const { notify } = useStore()
+  const { state, notify } = useStore()
   return (
     <div className="split">
       <section className="card stack main">
@@ -45,7 +48,7 @@ function Firm() {
         <h2>Workspace</h2>
         <div className="kv"><span className="muted">Workspace</span><span>acoca-notaires</span></div>
         <p className="banner warn small">Address to confirm: the firm moved to 700 Av. Sainte-Croix (Sept 8, 2026), but the service contracts and emails still say 665 boul. Décarie.</p>
-        <div className="kv"><span className="muted">Sign-in</span><span>Microsoft 365 (Entra ID)</span></div>
+        <div className="kv"><span className="muted">Sign-in</span><span>{state.edition === 'core' ? 'Email, password and two-step verification' : 'Microsoft 365 (Entra ID)'}</span></div>
         <div className="kv"><span className="muted">Data region</span><span>Canada</span></div>
         <p className="small muted">Nexo is multi-firm: each notary firm gets its own isolated workspace, users, templates and fee table, so the platform can be offered to other firms later.</p>
       </aside>
@@ -126,7 +129,7 @@ function Roles() {
     <section className="card stack">
       <div className="row between">
         <div><h2>Roles &amp; permissions</h2><p className="small muted">Roles are separate from permissions. Owner and Super admin always see everything; other roles get only the permissions ticked here.</p></div>
-        <div className="row"><span className="small muted">You are: <b>{accessOf(state.auth)}</b></span><button className="btn btn-primary btn-sm" disabled={!editable} onClick={() => setCreating(true)}>+ New role</button></div>
+        <div className="row"><span className="small muted">You are: <b>{accessOf(state.auth)}</b></span>{has(state, 'customRoles') ? <button className="btn btn-primary btn-sm" disabled={!editable} onClick={() => setCreating(true)}>+ New role</button> : <span className="badge gray row" style={{ gap: 4 }}><Lock size={12} /> Custom roles: full version</span>}</div>
       </div>
       {!editable && <p className="banner warn small row" style={{ gap: 6 }}><Lock size={14} /> Only Owner and Super admin can change roles and permissions.</p>}
       <div className="table-wrap" style={{ boxShadow: 'none' }}>

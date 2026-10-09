@@ -5,6 +5,7 @@ import { useStore, now } from '../../store'
 import { PageHeader, Badge, Modal, Tabs } from '../../ui'
 import { stageInfo, isClosed, fmtDate, stagesFor, contractOverdue, money } from '../../logic'
 import { FILE_TYPES, PROPERTY_TYPES, LENDER_TYPES } from '../../firm'
+import { isCore, CORE_EXCLUDED_TYPES } from '../../editions'
 import { addDays } from '../../data'
 
 export default function Files() {
@@ -18,14 +19,14 @@ export default function Files() {
 
   const rows = useMemo(() => {
     const ql = q.trim().toLowerCase()
-    return state.files.map((f) => ({ f, s: stageInfo(f) })).filter(({ f, s }) => {
+    return state.files.filter((f) => !isCore(state) || !CORE_EXCLUDED_TYPES.includes(f.type)).map((f) => ({ f, s: stageInfo(f) })).filter(({ f, s }) => {
       const byFilter = {
         active: !isClosed(f), client: !isClosed(f) && s.owner === 'Client', staff: !isClosed(f) && s.owner === 'Staff',
         escalated: f.escalated && !isClosed(f), overdue: contractOverdue(f), closed: isClosed(f), all: true,
       }[filter]
       return byFilter && (type === 'All' || f.type === type) && (!ql || [f.id, f.addr, f.city, ...f.clients].join(' ').toLowerCase().includes(ql))
     })
-  }, [state.files, filter, type, q])
+  }, [state, filter, type, q])
 
   const count = (k) => state.files.filter((f) => ({ active: !isClosed(f), client: !isClosed(f) && stageInfo(f).owner === 'Client', staff: !isClosed(f) && stageInfo(f).owner === 'Staff', escalated: f.escalated && !isClosed(f), overdue: contractOverdue(f), closed: isClosed(f) })[k]).length
 
@@ -50,7 +51,7 @@ export default function Files() {
       ]} />
       <div className="row">
         <label className="grow" style={{ flexBasis: 260 }}><span className="sr-only">Search files</span><input className="input" placeholder="Search client, address, file #" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-        <label><span className="sr-only">Type</span><select className="select" value={type} onChange={(e) => setType(e.target.value)}>{['All', ...Object.keys(FILE_TYPES)].map((t) => <option key={t} value={t}>{t === 'All' ? 'All types' : t}</option>)}</select></label>
+        <label><span className="sr-only">Type</span><select className="select" value={type} onChange={(e) => setType(e.target.value)}>{['All', ...Object.keys(FILE_TYPES).filter((t) => !isCore(state) || !CORE_EXCLUDED_TYPES.includes(t))].map((t) => <option key={t} value={t}>{t === 'All' ? 'All types' : t}</option>)}</select></label>
       </div>
       <div className="table-wrap">
         <table>
@@ -120,7 +121,7 @@ export function NewFileModal({ onClose }) {
       <form className="stack" onSubmit={submit}>
         <label className="field"><span>Client name</span><input className="input" value={f.name} onChange={set('name')} autoFocus /></label>
         <div className="grid-2">
-          <label className="field"><span>File type</span><select className="select" value={f.type} onChange={set('type')}>{Object.keys(FILE_TYPES).map((t) => <option key={t}>{t}</option>)}</select></label>
+          <label className="field"><span>File type</span><select className="select" value={f.type} onChange={set('type')}>{Object.keys(FILE_TYPES).filter((t) => !isCore(state) || !CORE_EXCLUDED_TYPES.includes(t)).map((t) => <option key={t}>{t}</option>)}</select></label>
           <label className="field"><span>Property type</span><select className="select" value={f.propertyType} onChange={set('propertyType')}>{PROPERTY_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
           <label className="field"><span>Lender</span><select className="select" value={f.lenderType} onChange={set('lenderType')}>{LENDER_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
           <label className="field"><span>Client language</span><select className="select" value={f.lang} onChange={set('lang')}><option>FR</option><option>EN</option></select></label>

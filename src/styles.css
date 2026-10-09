@@ -555,3 +555,17 @@ details.answers summary { cursor: pointer; font-weight: 600; font-size: 13px; co
 @media (max-width: 600px) { .firm-signup { padding: 20px 16px; } }
 .step.on { color: var(--navy-dark); border-color: var(--navy); }
 .step.on span { background: var(--navy); color: #fff; }
+
+/* ---- Demo editions (restricted C$50k package vs full features) ---- */
+.edition-seg button.core.on { background: #FEF3C7; color: #92400E; }
+.nav-lock { color: var(--muted); opacity: .7; }
+.locked { display: flex; gap: 12px; align-items: flex-start; border: 1px dashed #D9C08A; background: #FFFBEB; border-radius: 10px; padding: 14px 16px; }
+.locked.compact { padding: 10px 12px; gap: 8px; }
+.locked-icon { flex: none; width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; background: #FEF3C7; color: #92400E; }
+.locked.compact .locked-icon { width: 26px; height: 26px; }
+.edition-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.edition-card { display: flex; flex-direction: column; gap: 3px; text-align: left; border: 1.5px solid var(--line); background: var(--card); border-radius: 10px; padding: 10px 12px; cursor: pointer; font: inherit; color: inherit; }
+.edition-card:hover { border-color: var(--navy); }
+.edition-card.on { border-color: var(--navy); background: var(--navy-tint-2); box-shadow: 0 0 0 1px var(--navy); }
+.edition-card.core.on { border-color: #B45309; background: #FFFBEB; box-shadow: 0 0 0 1px #B45309; }
+@media (max-width: 480px) { .edition-pick { grid-template-columns: 1fr; } }

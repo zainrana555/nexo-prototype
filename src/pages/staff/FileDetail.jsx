@@ -13,6 +13,8 @@ import { addDays, STAFF } from '../../data'
 import { Composer, composerFields, IdViewer } from '../../Shared'
 import { appointments } from '../../availability'
 import { EventModal, BookModal } from './Calendar'
+import { has, isCore, CORE_EXCLUDED_TYPES } from '../../editions'
+import { LockedNote } from '../../Locked'
 
 export default function FileDetail() {
   const { id } = useParams()
@@ -22,6 +24,7 @@ export default function FileDetail() {
   const file = state.files.find((f) => f.id === id)
   const [modal, setModal] = useState(null)
   if (!file) return <p>File not found. <Link to="/app/files">Back to files</Link></p>
+  if (isCore(state) && CORE_EXCLUDED_TYPES.includes(file.type)) return <div className="stack" style={{ maxWidth: 760 }}><LockedNote feature="estateFiles" /><Link to="/app/files">Back to files</Link></div>
   const s = stageInfo(file)
   const setTab = (k) => setParams({ tab: k })
   const pendingIds = file.parties.reduce((n, p) => n + p.ids.filter((d) => d.review === 'pending').length, 0)
@@ -134,7 +137,7 @@ function OverviewTab({ file, s, setTab, setModal }) {
                     {b ? <button className="btn btn-sm" onClick={() => setAppt(appointments(state).find((a) => a.id === (which === 'mortgage' ? 'mort-' : 'sign-') + file.id))}><CalendarClock size={14} /> Manage</button> : <Badge tone="warn">To book</Badge>}
                   </div>
                 ))}
-                {meetings.some(([, , b]) => b?.teamsUrl) && <p className="small" style={{ color: '#4b45c4' }}>Teams links created automatically</p>}
+                {!isCore(state) && meetings.some(([, , b]) => b?.teamsUrl) && <p className="small" style={{ color: '#4b45c4' }}>Teams links created automatically</p>}
                 {!stepDone(file, 'booking') && (
                   <div className="row">
                     <button className="btn btn-sm" onClick={() => { dispatch({ type: 'booking/sendLink', id: file.id }); notify('Email sent with 3 proposed times') }}><Send size={14} /> {file.bookingLinkSent ? 'Resend' : 'Send'} proposed times</button>
@@ -154,16 +157,20 @@ function OverviewTab({ file, s, setTab, setModal }) {
               <p className="small muted">{fileType(file.type).payer === 'buyer' || file.type === 'Purchase' || file.type === 'Cash purchase' ? 'Fees are remitted with the down payment, by wire only, before or at the first appointment.' : 'Fees are paid from the proceeds of the financing.'} Banking instructions are password-protected; the password is given by phone only.</p>
               <div className="funds-steps">
                 <span className={file.funds?.requested ? 'ok' : ''}>{file.funds?.requested ? '✓' : '1'} Amount and proof-of-funds request sent</span>
+                {has(state, 'fundsWorkflow') && <>
                 <span className={file.funds?.passwordSent ? 'ok' : ''}>{file.funds?.passwordSent ? '✓' : '2'} Password-protected instructions sent</span>
                 <span className={file.funds?.passwordConfirmed ? 'ok' : ''}>{file.funds?.passwordConfirmed ? '✓' : '3'} Password confirmed by phone</span>
                 <span className={file.funds?.source ? 'ok' : ''}>{file.funds?.source ? '✓' : '4'} Source of funds declared{file.funds?.source ? `: ${file.funds.source.origin}${file.funds.source.thirdParty ? ' + third party' : ''}` : ''}</span>
+                </>}
                 <span className={file.funds?.received ? 'ok' : ''}>{file.funds?.received ? '✓' : '5'} Funds received in trust</span>
               </div>
               <div className="row">
                 {!file.funds?.requested && <button className="btn btn-sm" disabled={!file.contract.signed} onClick={() => { dispatch({ type: 'funds/request', id: file.id, amount: file.contract.total, amountLabel: money(file.contract.total) }); notify('Funds request emailed') }}><Send size={14} /> Send funds request</button>}
-                {file.funds?.requested && !file.funds?.passwordSent && <button className="btn btn-sm" onClick={() => { dispatch({ type: 'funds/password', id: file.id }); notify('Password-protected instructions sent') }}><Lock size={14} /> Send protected instructions</button>}
+                {!has(state, 'fundsWorkflow') && file.funds?.requested && <button className="btn btn-sm" onClick={() => { dispatch({ type: 'funds/received', id: file.id }); notify(file.funds?.received ? 'Funds marked not received' : 'Funds marked received') }}>{file.funds?.received ? 'Undo funds received' : 'Mark funds received'}</button>}
+                {has(state, 'fundsWorkflow') && file.funds?.requested && !file.funds?.passwordSent && <button className="btn btn-sm" onClick={() => { dispatch({ type: 'funds/password', id: file.id }); notify('Password-protected instructions sent') }}><Lock size={14} /> Send protected instructions</button>}
                 {file.funds?.passwordSent && !file.funds?.passwordConfirmed && <button className="btn btn-sm" onClick={() => { dispatch({ type: 'funds/passwordConfirmed', id: file.id }); notify('Password confirmed by phone') }}>Password confirmed by phone</button>}
               </div>
+              {!has(state, 'fundsWorkflow') && <LockedNote feature="fundsWorkflow" compact />}
             </>
           )}
         </section>

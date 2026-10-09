@@ -4,9 +4,11 @@ import { useStore } from '../../store'
 import { Badge, Modal } from '../../ui'
 import { stepDone, stageInfo, fmtDate, money } from '../../logic'
 import { FIRM, FCT, fileType } from '../../firm'
+import { has } from '../../editions'
+import { LockedNote } from '../../Locked'
 
 export default function FileClosing({ file }) {
-  const { dispatch, notify } = useStore()
+  const { state, dispatch, notify } = useStore()
   const [fct, setFct] = useState(false)
   const booked = stepDone(file, 'booking')
   const canSign = booked && stepDone(file, 'title')
@@ -42,7 +44,7 @@ export default function FileClosing({ file }) {
       <section className="card stack">
         <div className="row between"><h2>2 · Title insurance (FCT)</h2>{file.fctSent ? <Badge tone="ok">Requested</Badge> : <Badge>Optional</Badge>}</div>
         <p className="small muted">FCT residential request, pre-filled from the file sheet and the parties. Review, then send or print.</p>
-        <button className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setFct(true)}><ShieldCheck size={15} /> Prepare FCT request</button>
+        {has(state, 'fct') ? <button className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setFct(true)}><ShieldCheck size={15} /> Prepare FCT request</button> : <LockedNote feature="fct" compact />}
       </section>
 
       <section className="card stack">

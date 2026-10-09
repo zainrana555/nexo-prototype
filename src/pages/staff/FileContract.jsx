@@ -1,3 +1,4 @@
+import { isCore } from '../../editions'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Send, Printer, CircleCheck } from 'lucide-react'
@@ -111,7 +112,7 @@ export default function FileContract({ file }) {
         <Modal title="Send for e-signature" onClose={() => setConfirm(false)}>
           <p>Send the {o.lang} “{ct.name}” contract (<b>{money(fees.total)}</b>) for signature to:</p>
           {file.parties.map((p) => <div key={p.name} className="kv card" style={{ padding: 12 }}><span>{p.name}</span><span className="muted">{p.email}</span></div>)}
-          <p className="small muted">Today the firm uses Adobe Sign; any e-signature provider can be connected.</p>
+          <p className="small muted">{isCore(state) ? 'Signed directly in Nexo with the built-in e-signature (name, date, time and IP recorded).' : 'Today the firm uses Adobe Sign; any e-signature provider can be connected.'}</p>
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <button className="btn" onClick={() => setConfirm(false)}>Cancel</button>
             <button className="btn btn-primary" onClick={() => { dispatch({ type: 'contract/send', id: file.id, total: fees.total, totalLabel: money(fees.total), lang: o.lang, options: o }); setConfirm(false); notify('Contract sent for e-signature') }}><Send size={16} /> Send</button>

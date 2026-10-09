@@ -27,6 +27,8 @@ import Guide from './pages/client/Guide'
 import Signup from './pages/client/Signup'
 import ClientLogin from './pages/client/ClientLogin'
 import FirmSignup from './pages/FirmSignup'
+import { Gate } from './Locked'
+import EditionSwitch from './pages/EditionSwitch'
 import './styles.css'
 
 // HashRouter keeps every route working on GitHub Pages (no server rewrites needed).
@@ -37,7 +39,8 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signup-firm" element={<FirmSignup />} />
+          <Route path="/signup-firm" element={<Gate feature="firmSignup"><FirmSignup /></Gate>} />
+          <Route path="/demo/:edition" element={<EditionSwitch />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Overview />} />
             <Route path="leads" element={<Leads />} />
@@ -47,10 +50,10 @@ createRoot(document.getElementById('root')).render(
             <Route path="id-review" element={<IdReview />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="templates" element={<Templates />} />
-            <Route path="automations" element={<Automations />} />
+            <Route path="automations" element={<Gate feature="automations"><Automations /></Gate>} />
             <Route path="settings" element={<Settings />} />
-            <Route path="fax" element={<Fax />} />
-            <Route path="banking" element={<Banking />} />
+            <Route path="fax" element={<Gate feature="fax"><Fax /></Gate>} />
+            <Route path="banking" element={<Gate feature="banking"><Banking /></Gate>} />
           </Route>
           <Route path="/client" element={<ClientLayout />}>
             <Route index element={<Inbox />} />
@@ -60,7 +63,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="booking" element={<Booking />} />
             <Route path="portal" element={<Portal />} />
             <Route path="file" element={<MyFile />} />
-            <Route path="consult" element={<Consult />} />
+            <Route path="consult" element={<Gate feature="consult" client><Consult /></Gate>} />
             <Route path="guide" element={<Guide />} />
             <Route path="signup" element={<Signup />} />
             <Route path="login" element={<ClientLogin />} />

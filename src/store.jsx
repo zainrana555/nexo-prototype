@@ -23,6 +23,7 @@ const initial = () => ({
   users: STAFF.map((u) => ({ ...u, status: 'Active' })),
   clientAccount: null,
   clientSignedIn: false,
+  edition: 'full',
   firms: [{ name: 'Acoca Notaires inc.', workspace: 'acoca-notaires', plan: 'Firm', users: 10 }],
   faxes: INITIAL_FAXES,
   templates: INITIAL_TEMPLATES.map((t) => ({ recipients: 'Client', access: ROLES, ...t })),
@@ -92,7 +93,8 @@ function fileFromLead(lead, id) {
 
 function reducer(s, a) {
   switch (a.type) {
-    case 'reset': return { ...initial(), auth: s.auth }
+    case 'reset': return { ...initial(), auth: s.auth, edition: s.edition }
+    case 'edition': return { ...s, edition: a.edition }
     case 'login': return { ...s, auth: a.user }
     case 'logout': return { ...s, auth: null }
     case 'lang': return { ...s, lang: a.lang }

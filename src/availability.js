@@ -41,7 +41,7 @@ export function busyFor(state, person, date, excludeId) {
   const own = appointments(state)
     .filter((a) => a.date === date && (a.who === person || a.who === 'All') && a.id !== excludeId)
     .map((a) => ({ start: toMin(a.time), end: toMin(a.time) + a.duration, label: a.title }))
-  return [...outlookBusy(person, date), ...own]
+  return [...(state.edition === 'core' ? [] : outlookBusy(person, date)), ...own]
 }
 
 export function slotsFor(state, person, date, duration, excludeId) {

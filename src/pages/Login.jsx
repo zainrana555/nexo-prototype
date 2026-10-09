@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShieldCheck, Zap, FolderOpen, Mail } from 'lucide-react'
+import { ShieldCheck, Zap, FolderOpen, Mail, Lock, Sparkles } from 'lucide-react'
 import { useStore } from '../store'
 import { Logo } from '../ui'
 import { DemoBar } from '../layouts'
 import { STAFF } from '../data'
+import { EDITIONS } from '../editions'
 
 // The demo signs in as the Super admin by default (all permissions); other roles stay selectable.
 const DEFAULT_USER = STAFF.find((s) => s.access === 'Super admin') ?? STAFF[0]
 const USERS = [DEFAULT_USER, ...STAFF.filter((s) => s !== DEFAULT_USER)]
 
 export default function Login() {
-  const { dispatch, notify } = useStore()
+  const { state, dispatch, notify } = useStore()
   const nav = useNavigate()
   const [email, setEmail] = useState(DEFAULT_USER.email)
   const [pw, setPw] = useState('demo-password')
@@ -52,15 +53,23 @@ export default function Login() {
 
         <section className="login-form-wrap">
           <form className="login-form stack" onSubmit={signIn}>
+            <div className="edition-pick" role="group" aria-label="Choose a demo">
+              {[['core', Lock], ['full', Sparkles]].map(([k, Icon]) => (
+                <button type="button" key={k} className={'edition-card' + (state.edition === k ? ' on' : '') + (k === 'core' ? ' core' : '')} onClick={() => { dispatch({ type: 'edition', edition: k }); notify(`${EDITIONS[k].short} selected`) }}>
+                  <span className="row" style={{ gap: 6 }}><Icon size={15} /><b>{EDITIONS[k].short}</b></span>
+                  <span className="small muted">{EDITIONS[k].sub}</span>
+                </button>
+              ))}
+            </div>
             <div>
               <h2 style={{ fontSize: 24 }}>Sign in</h2>
               <p className="muted">Acoca Notaires · staff workspace</p>
             </div>
-            <button type="button" className="btn btn-block ms-btn" onClick={signIn}>
+            {state.edition !== 'core' && <><button type="button" className="btn btn-block ms-btn" onClick={signIn}>
               <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022" /><rect x="11" y="1" width="9" height="9" fill="#7fba00" /><rect x="1" y="11" width="9" height="9" fill="#00a4ef" /><rect x="11" y="11" width="9" height="9" fill="#ffb900" /></svg>
               Sign in with Microsoft
             </button>
-            <div className="divider"><span>or</span></div>
+            <div className="divider"><span>or</span></div></>}
             <label className="field"><span>Demo user (choose a role to see permissions)</span>
               <select className="select" value={email} onChange={(e) => setEmail(e.target.value)}>
                 {USERS.map((s) => <option key={s.email} value={s.email}>{s.name} · {s.access}</option>)}
@@ -72,12 +81,12 @@ export default function Login() {
               <button type="button" className="link-btn" onClick={() => notify('Password reset email sent (demo)')}>Forgot password?</button>
             </div>
             <button className="btn btn-primary btn-block" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
-            <p className="small muted" style={{ textAlign: 'center' }}>Demo: any password works. Two-factor sign-in would apply in production.</p>
+            <p className="small muted" style={{ textAlign: 'center' }}>{state.edition === 'core' ? 'Staff sign in with email, password and a 6-digit code (two-step verification). Demo: any password works.' : 'Demo: any password works. Two-factor sign-in would apply in production.'}</p>
             <div className="client-cta">
               <span>Are you a client?</span>
               <Link to="/client">Open your client space →</Link>
             </div>
-            <p className="small muted" style={{ textAlign: 'center' }}>New notary firm? <Link to="/signup-firm">Create your workspace</Link></p>
+            {state.edition !== 'core' && <p className="small muted" style={{ textAlign: 'center' }}>New notary firm? <Link to="/signup-firm">Create your workspace</Link></p>}
           </form>
         </section>
       </div>

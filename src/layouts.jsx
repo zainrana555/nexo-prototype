@@ -9,6 +9,7 @@ import { Logo, Avatar, Modal } from './ui'
 import { demoSteps, isClosed, can } from './logic'
 import { accessOf } from './data'
 import { t } from './i18n'
+import { EDITIONS, has } from './editions'
 import { NewLeadModal } from './pages/staff/Leads'
 import { NewFileModal } from './pages/staff/Files'
 
@@ -31,6 +32,9 @@ export function DemoBar() {
         <div className="seg" role="group" aria-label="Switch view">
           <button className={!onClient ? 'on' : ''} onClick={() => nav(state.auth ? '/app' : '/login')}>Staff app</button>
           <button className={onClient ? 'on' : ''} onClick={() => nav('/client')}>Client view · Émilie</button>
+        </div>
+        <div className="seg edition-seg" role="group" aria-label="Demo edition">
+          {Object.entries(EDITIONS).map(([k, e]) => <button key={k} className={(state.edition === k ? 'on' : '') + (k === 'core' ? ' core' : '')} onClick={() => { dispatch({ type: 'edition', edition: k }); notify(`${e.short} selected`) }}>{k === 'core' && <Lock size={12} />}{e.short}</button>)}
         </div>
         <div className="grow" />
         <button className="demo-btn" onClick={() => setOpen(true)}><CirclePlay size={15} /> Guided demo <b>{done}/{steps.length}</b></button>
@@ -87,11 +91,11 @@ export function AppLayout() {
     { to: '/app/leads', label: 'Leads', icon: Inbox, count: state.leads.filter((l) => l.status === 'New').length },
     { to: '/app/files', label: 'Files', icon: FolderOpen, count: state.files.filter((f) => !isClosed(f)).length, quiet: true },
     { to: '/app/id-review', label: 'ID review', icon: ShieldCheck, count: pendingIds },
-    { to: '/app/fax', label: 'Fax inbox', icon: Printer, count: state.faxes.filter((f) => f.status === 'review').length },
+    { to: '/app/fax', label: 'Fax inbox', icon: Printer, count: state.faxes.filter((f) => f.status === 'review').length, feature: 'fax' },
     { to: '/app/calendar', label: 'Calendar', icon: CalendarDays },
     { to: '/app/templates', label: 'Templates', icon: FileText },
-    { to: '/app/automations', label: 'Automations', icon: Zap },
-    can(state, 'banking.view') && { to: '/app/banking', label: 'Banking', icon: Landmark },
+    { to: '/app/automations', label: 'Automations', icon: Zap, feature: 'automations' },
+    can(state, 'banking.view') && { to: '/app/banking', label: 'Banking', icon: Landmark, feature: 'banking' },
     { to: '/app/settings', label: 'Settings', icon: Settings },
   ]
   return (
@@ -104,7 +108,7 @@ export function AppLayout() {
             {nav.filter(Boolean).map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
                 <n.icon size={18} /><span className="grow">{n.label}</span>
-                {!!n.count && <span className={'nav-count' + (n.quiet ? ' quiet' : '')}>{n.count}</span>}
+                {n.feature && !has(state, n.feature) ? <Lock size={14} className="nav-lock" aria-label="Not in the C$50k package" /> : !!n.count && <span className={'nav-count' + (n.quiet ? ' quiet' : '')}>{n.count}</span>}
               </NavLink>
             ))}
           </div>

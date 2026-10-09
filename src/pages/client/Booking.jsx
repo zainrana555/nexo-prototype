@@ -9,6 +9,7 @@ import { fileType } from '../../firm'
 import { teamsUrl, downloadIcs, DURATION, OFFICE_ADDRESS } from '../../availability'
 import SlotPicker from '../../SlotPicker'
 import { NotYet } from './Mandate'
+import { isCore } from '../../editions'
 
 // Purchases need two meetings (mortgage signing, then the sale with the seller); other files need one.
 export default function Booking() {
@@ -94,6 +95,7 @@ export default function Booking() {
         <div>
           <h1>{reschedule ? t(L, 'newTime') : two ? t(L, 'bookTwo') : t(L, 'bookTitle')}</h1>
           <p className="muted" style={{ marginTop: 4, fontSize: 14 }}>{t(L, 'bookSub', { id: file.id, notary: person })}</p>
+          {isCore(state) && <p className="small" style={{ margin: '6px 0 0', color: 'var(--navy)' }}>{L === 'fr' ? 'Disponibilités du calendrier Nexo de l’étude · rendez-vous en personne' : 'Times from the firm’s Nexo calendar · in-person appointments'}</p>}
         </div>
         {!unlocked && !reschedule ? (
           <p className="banner neutral row" style={{ gap: 8, alignItems: 'flex-start' }}><Lock size={16} style={{ flex: 'none', marginTop: 2 }} />{t(L, 'locked')}</p>
@@ -103,10 +105,10 @@ export default function Booking() {
             {two && <div className="step-pill"><Check size={13} /> {meetings.indexOf(target) + 1}/2 · <b>{target.title}</b> · {target.hint}</div>}
             {!reschedule && (
               <>
-                <div className="grid-2">
+                {!isCore(state) && <div className="grid-2">
                   <button className={'pill-btn' + (mode === 'In person' ? ' on' : '')} onClick={() => setMode('In person')}><MapPin size={15} /> {t(L, 'modeInPerson')}</button>
                   <button className={'pill-btn' + (mode === 'Teams video' ? ' on' : '')} onClick={() => setMode('Teams video')}><Video size={15} /> {t(L, 'modeTeams')}</button>
-                </div>
+                </div>}
                 <label className="field"><span>{t(L, 'withWhom')}</span>
                   <select className="select" value={notary} onChange={(e) => { setNotary(e.target.value); setPick(null) }}>
                     {BOOKABLE.filter((p) => p.for.includes('signing')).map((p) => <option key={p.name} value={p.name}>{p.name}{p.name === file.notary ? (L === 'fr' ? ' (votre notaire)' : ' (your notary)') : ''}</option>)}

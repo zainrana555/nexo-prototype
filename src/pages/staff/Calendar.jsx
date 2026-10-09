@@ -1,3 +1,4 @@
+import { isCore } from '../../editions'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Copy, Video, MapPin, Phone, Plus, BellRing, X, CalendarClock, CircleCheck } from 'lucide-react'
@@ -36,7 +37,7 @@ export default function Calendar() {
   const cols = view === 'team' ? people.map((p) => ({ key: p, person: p, date: day, label: p.replace(/^Me /, ''), sub: STAFF.find((s) => s.name === p)?.role })) : days.map((d) => ({ key: d, person, date: d, label: new Date(d + 'T12:00').toLocaleDateString('en-CA', { weekday: 'short', day: 'numeric' }), today: d === iso(new Date()) }))
 
   const itemsAt = (col, h) => [
-    ...outlookBusy(col.person, col.date).filter((b) => Math.floor(b.start / 60) === h).map((b) => ({ id: `busy-${col.key}-${b.start}`, busy: true, title: b.label === 'Lunch' ? 'Lunch' : 'Busy · Outlook', time: fmtTime(b.start), end: fmtTime(b.end) })),
+    ...(isCore(state) ? [] : outlookBusy(col.person, col.date)).filter((b) => Math.floor(b.start / 60) === h).map((b) => ({ id: `busy-${col.key}-${b.start}`, busy: true, title: b.label === 'Lunch' ? 'Lunch' : 'Busy · Outlook', time: fmtTime(b.start), end: fmtTime(b.end) })),
     ...appts.filter((a) => a.date === col.date && (a.who === col.person || a.who === 'All') && Math.floor(toMin(a.time) / 60) === h),
   ]
   const runReminders = () => {
@@ -49,7 +50,7 @@ export default function Calendar() {
     <>
       <PageHeader
         title="Calendar"
-        sub="Shared team calendar, synced with each person’s Outlook. Paralegals can book for any notary."
+        sub={isCore(state) ? 'Shared Nexo calendar: everyone at the firm sees all appointments and can book for any notary. No Outlook sync.' : 'Shared team calendar, synced with each person’s Outlook. Paralegals can book for any notary.'}
         actions={<>
           <button className="btn" onClick={runReminders}><BellRing size={16} /> Send due reminders</button>
           <button className="btn" onClick={async () => { try { await navigator.clipboard.writeText('https://book.nexo.demo/acoca-notaires/consultation') } catch { /* blocked */ } notify('Consultation booking link copied') }}><Copy size={16} /> Copy booking link</button>
@@ -96,7 +97,7 @@ export default function Calendar() {
           <span className="row"><span className="legend signing" /> Signing</span>
           <span className="row"><span className="legend consultation" /> Consultation</span>
           <span className="row"><span className="legend internal" /> Internal</span>
-          <span className="row"><span className="legend busy" /> Busy in Outlook (read-only)</span>
+          {!isCore(state) && <span className="row"><span className="legend busy" /> Busy in Outlook (read-only)</span>}
         </div>
       </div>
 
@@ -180,7 +181,7 @@ export function BookModal({ onClose, fileId, leadId }) {
     } else {
       dispatch({ type: 'consult/book', event: { id, title: `Consultation – ${lead.name}`, date: pick.date, time: pick.time, duration, mode, who, leadId: lead.id, attendees: [lead.name], teamsUrl: tUrl, bookedBy: 'Staff' } })
     }
-    notify('Booked · added to Outlook · invitation emailed to the client'); onClose()
+    notify(isCore(state) ? 'Booked in the Nexo calendar · confirmation emailed to the client' : 'Booked · added to Outlook · invitation emailed to the client'); onClose()
   }
 
   return (
@@ -194,7 +195,7 @@ export function BookModal({ onClose, fileId, leadId }) {
             <label className="field"><span>Lead</span><select className="select" value={lid} onChange={(e) => setLid(e.target.value)}>{leads.map((l) => <option key={l.id} value={l.id}>{l.name} · {l.type}</option>)}</select></label>
           )}
           <label className="field"><span>With</span><select className="select" value={who} onChange={(e) => { setWho(e.target.value); setPick(null) }}>{people.map((p) => <option key={p.name} value={p.name}>{p.name} ({p.role})</option>)}</select></label>
-          <label className="field"><span>How</span><select className="select" value={mode} onChange={(e) => setMode(e.target.value)}><option>In person</option><option>Teams video</option>{type === 'consultation' && <option>Phone</option>}</select></label>
+          <label className="field"><span>How</span><select className="select" value={mode} onChange={(e) => setMode(e.target.value)}><option>In person</option>{!isCore(state) && <option>Teams video</option>}{type === 'consultation' && <option>Phone</option>}</select></label>
           {type === 'signing' && two && (
             <label className="field"><span>Meeting</span><select className="select" value={which} onChange={(e) => { setWhich(e.target.value); setPick(null) }}><option value="mortgage" disabled={!!file.mortgageBooking}>1 · Mortgage signing</option><option value="main" disabled={!!file.booking}>2 · Sale signing (with seller)</option></select></label>
           )}
@@ -203,7 +204,7 @@ export function BookModal({ onClose, fileId, leadId }) {
         </div>
         <div className="main stack">
           <SlotPicker person={who} duration={duration} value={pick} onChange={setPick} />
-          <p className="small muted">Free times combine {who}’s Outlook busy times and appointments already in Nexo, with a 15-minute buffer.</p>
+          <p className="small muted">Free times combine {isCore(state) ? '' : `${who}’s Outlook busy times and `}appointments already in Nexo, with a 15-minute buffer.</p>
         </div>
       </div>
       <div className="row" style={{ justifyContent: 'flex-end' }}>

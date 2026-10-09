@@ -5,6 +5,8 @@ import { useStore } from '../../store'
 import { t } from '../../i18n'
 import { DEMO_FILE } from '../../data'
 import { NotYet } from './Mandate'
+import { has } from '../../editions'
+import { LockedNote } from '../../Locked'
 
 const TOTAL = 6
 const ID_TYPES_EN = ['Passport', "Driver's licence", 'Health insurance card']
@@ -45,7 +47,7 @@ export default function Intake() {
     currentLender: 'Caisse Exemple', currentAccount: '', insurer: 'Assurances Exemple', policy: '', insBank: false,
     mortgages: [{ lender: 'Banque Exemple', account: '' }], rented: false, captures: [],
     broker: true, syndicate: '', sellerContact: '', sellerEmail: '', fundsOrigin: 0, thirdParty: false, abroad: false, unequal: false, propKind: 0, newAddress: '',
-    ids: [], signMode: 'remote', face: 'idle', faceConsent: false, consent: false,
+    ids: [], signMode: has(state, 'remoteId') ? 'remote' : 'inperson', face: 'idle', faceConsent: false, consent: false,
   })
   const set = useCallback((k, v) => setD((x) => ({ ...x, [k]: v })), [])
 
@@ -295,7 +297,7 @@ export default function Intake() {
         )}
 
         {step === 3 && <StepIds L={L} d={d} set={set} validIds={validIds} corp={corp} />}
-        {step === 4 && <StepSign L={L} d={d} set={set} />}
+        {step === 4 && <StepSign L={L} d={d} set={set} remoteOk={has(state, 'remoteId')} />}
         {step === 5 && (
           <>
             <h1>{t(L, 's5Title')}</h1>
@@ -388,7 +390,7 @@ function StepIds({ L, d, set, validIds, corp }) {
   )
 }
 
-function StepSign({ L, d, set }) {
+function StepSign({ L, d, set, remoteOk = true }) {
   useEffect(() => {
     if (d.face !== 'running') return
     const tm = setTimeout(() => set('face', 'passed'), 2200)
@@ -399,8 +401,9 @@ function StepSign({ L, d, set }) {
       <h1>{t(L, 's4Title')}</h1>
       <div className="stack">
         <Choice on={d.signMode === 'inperson'} onClick={() => set('signMode', 'inperson')} title={t(L, 'inPerson')} sub={t(L, 'inPersonSub')} />
-        <Choice on={d.signMode === 'remote'} onClick={() => set('signMode', 'remote')} title={t(L, 'remote')} sub={t(L, 'remoteSub')} />
+        {remoteOk && <Choice on={d.signMode === 'remote'} onClick={() => set('signMode', 'remote')} title={t(L, 'remote')} sub={t(L, 'remoteSub')} />}
       </div>
+      {!remoteOk && <LockedNote feature="remoteId" compact />}
       {d.signMode === 'remote' && (
         <div className="banner info stack" style={{ padding: 16 }}>
           <b>{t(L, 'faceTitle')}</b>

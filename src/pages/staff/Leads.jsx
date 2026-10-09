@@ -177,13 +177,13 @@ export function LeadDetail() {
                 )}
                 {!lead.formNo && lead.subject && <p className="small"><b>Subject:</b> {lead.subject}</p>}
                 <p style={{ whiteSpace: 'pre-line', marginTop: 14, lineHeight: 1.6 }}>{lead.message || '—'}</p>
-                <div className="ai-extract">
+                {state.edition !== 'core' && <div className="ai-extract">
                   <span className="small"><b>Nexo read:</b></span>
                   <Badge tone="navy">{lead.service ?? 'Real estate'}</Badge>
                   {(lead.service ?? 'Real estate') === 'Real estate' && <><Badge>{lead.type}</Badge><Badge>{lead.propertyType ?? 'Condo'}</Badge><Badge>{lead.lenderType ?? 'Conventional'}</Badge></>}
                   {lead.closingDate && <Badge>Signing ≈ {fmtDate(lead.closingDate)}</Badge>}
                   <Badge tone="blue">{lead.lang}</Badge>
-                </div>
+                </div>}
               </div>
             ) : (
               <div className="timeline">{lead.log.map((l, i) => <div key={i}><span className="small muted">{l.t} · {l.who}</span><div>{l.e}</div></div>)}</div>

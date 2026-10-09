@@ -22,7 +22,7 @@ export default function IdReview() {
   return (
     <>
       {view && <IdViewer doc={view.d} party={view.p} onClose={() => setView(null)} onDecide={canReview ? (dec) => review(view, dec) : null} />}
-      <PageHeader title="ID review" sub="IDs read automatically (expiry, name match, face check). Approve or reject each one." />
+      <PageHeader title="ID review" sub={state.edition === 'core' ? 'Check each ID by hand: expiry date, name and photo, then approve or reject it.' : 'IDs read automatically (expiry, name match, face check). Approve or reject each one.'} />
       <Tabs value={tab} onChange={setTab} tabs={[
         { key: 'pending', label: 'To review', count: items.filter((i) => i.d.review === 'pending').length },
         { key: 'flagged', label: 'Flagged', count: items.filter((i) => isExpired(i.d.exp) || i.d.review === 'rejected').length },
